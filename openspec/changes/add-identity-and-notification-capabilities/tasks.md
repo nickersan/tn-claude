@@ -99,20 +99,42 @@
       `email` claim (this overhaul is not required to stay backward-compatible —
       see design.md Decision 2); verify with a test asserting the JWT for each
       identifier type carries exactly the new claims
-- [ ] 3.5 Confirm the service does not require, store, or return any profile field
+- [x] 3.5 Confirm the service does not require, store, or return any profile field
       (name etc.) — verify by reviewing the request/response shapes against
       `specs/tn-auth-service/spec.md`'s "Token/session records are separate from
       profile data" requirement
-- [ ] 3.6 Configure structured JSON logging (`logback-spring.xml`,
+
+  Reviewed `GenerateController.GenerateRequest`, `RefreshController.
+  RefreshRequest`, `TokenPair`, and `Identifier` — none carry a name/profile
+  field.
+- [x] 3.6 Configure structured JSON logging (`logback-spring.xml`,
       `LogstashEncoder`) with `MaskingJsonGeneratorDecorator` masking the access
       token, refresh token, and identifier value fields; verify with a test that
       captures a log line for a generate/refresh call and asserts none of those
       values appear unmasked
-- [ ] 3.7 Register `com.tn.service.PropertyLogger` in `Application.java` (masking
+
+  Added `log.info("Issued session"/"Refreshed session", kv("identifierType",
+  ...), kv("identifierId", ...))` to `AuthServiceImpl` — deliberately logs the
+  internal id, never the raw identifier value or token, per the standard's
+  "log the event, not the payload" guidance; `logback-spring.xml`'s masking
+  is defense-in-depth on top of that. `AuthServiceLoggingTest` captures the
+  actual log event via a `ListAppender`, renders it through the same
+  `LogstashEncoder`/`MaskingJsonGeneratorDecorator` config, and asserts the
+  identifier value and both token values never appear.
+- [x] 3.7 Register `com.tn.service.PropertyLogger` in `Application.java` (masking
       at minimum `REGEX_PASSWORD`/`REGEX_SECRET`, plus the JWT signing-key
       property names) — currently absent, so every resolved config property logs
       unmasked at startup (finding 5); verify by checking startup log output
       contains no unmasked key material
+
+  Added a third `sensitive(".*signing.*key.*")` formatter alongside
+  `REGEX_PASSWORD`/`REGEX_SECRET`, matching `tn.auth-service.token.signing.
+  private-key`/`public-key`. Also had to add `tn-service` as a real dependency
+  for the first time in this service, which surfaced a genuine duplicate:
+  `tn-auth-service` had its own `NoopController` doing exactly what
+  `tn-service`'s shared one does (`tn-user-service` already relies on the
+  shared one, never had its own) — deleted the duplicate rather than working
+  around the bean-name conflict.
 - [x] 3.8 Drop the old `Email` table once 3.2–3.4 are confirmed working; verify
       with a clean-database integration test
 

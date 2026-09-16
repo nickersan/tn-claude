@@ -53,7 +53,10 @@ log.info("Issued session for " + identifier.type() + " " + identifier.value()); 
           <path>code</path>
           <path>refreshToken</path>
           <path>accessToken</path>
-          <valueMask>[A-Za-z0-9-_]{20,}\.[A-Za-z0-9-_]{10,}\.[A-Za-z0-9-_]{10,}</valueMask> <!-- JWT shape, belt-and-braces -->
+          <value>[A-Za-z0-9-_]{20,}\.[A-Za-z0-9-_]{10,}\.[A-Za-z0-9-_]{10,}</value> <!-- JWT shape, belt-and-braces. <value> is
+               the simple element (default mask) - <valueMask> is a different, more complex element taking nested
+               <value>/<mask> children for custom capture-group masks. Verified against logstash-logback-encoder 9.0's
+               actual API, not assumed. -->
         </decorator>
       </encoder>
     </appender>
