@@ -4,9 +4,12 @@
 
 - **Two spaces** per level. No tabs anywhere.
 - Continuation lines indent **+2** from the statement they continue.
-- There is no hard column limit. Long single expressions are acceptable when breaking
-  them would hurt readability (e.g. a one-line `instanceof`/ternary chain). Prefer to
-  break at method-call boundaries rather than mid-expression.
+- **Line length is 180 characters.** Wrap before that, not after — this is wider
+  than the old 80/100/120 conventions on purpose (this codebase's multi-argument
+  call/declaration layout, see below, already uses vertical space generously; 180
+  gives room for a descriptive single-line statement without forcing an
+  unnecessary wrap). Configure the IDE's line-length ruler/formatter to 180 to
+  match, don't eyeball it.
 
 ## Braces — Allman style
 

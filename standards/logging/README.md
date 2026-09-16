@@ -85,6 +85,18 @@ Treat this list as a minimum, not exhaustive — when in doubt, mask it:
 - Anything else conventionally sensitive if it ever appears in these services:
   passwords (n/a — this layer is passwordless), API keys, signing keys.
 
+## This covers business-event logging, not startup config logging
+
+`tn-service.PropertyLogger` (in `tn-service`, not this repo) is a separate,
+existing mechanism: an `ApplicationListener` that logs every resolved Spring
+`Environment` property at startup, masking any whose *name* matches a regex
+(ships with `REGEX_PASSWORD`/`REGEX_SECRET`). It solves a different layer —
+config values at boot, not application events at runtime — and every
+`java-spring-service` should register it (`tn-user-service` already does; see
+that service's `Application.java`) **in addition to**, not instead of, the
+structured/masked business-log setup above. Add both, don't treat one as
+covering the other.
+
 ## What logging is for here
 
 Log the *event* and enough structured context to debug and audit it — not the

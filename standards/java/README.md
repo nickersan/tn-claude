@@ -21,7 +21,8 @@ and names the intended direction.
 
 ## Non-negotiables (the short list)
 
-1. Two-space indent, no tabs. Allman braces (opening brace on its own line).
+1. Two-space indent, no tabs, 180-character line length. Allman braces (opening
+   brace on its own line).
 2. Import groups in the fixed order in `imports.md`, separated by blank lines. No
    wildcard imports.
 3. Utility classes are pluralised nouns with only `static` members.

@@ -50,11 +50,16 @@ already-published service jar into an image. Concretely, in the container repo:
 - `pom.xml`: `packaging: pom`, a single dependency on the service's own jar
   (`<groupId>com.tn</groupId><artifactId><service-name></artifactId>`, pinned
   version — a real Maven dependency, not a source build), plus any
-  **runtime-only** dependency the image needs that the jar itself doesn't carry
-  (e.g. an embedded-H2 driver for local deployment — `<scope>runtime</scope>`).
+  **runtime-only** dependency the image needs that the jar itself doesn't carry.
   This is the "weave in additional runtime dependencies" the split is for: the
   jar stays a clean, independently-versioned artifact; the image can still add
-  what it needs without the jar depending on it.
+  what it needs without the jar depending on it. (The original example here was
+  an embedded-H2 driver for local deployment — since superseded: local now runs
+  real PostgreSQL too, see `../database/README.md` and `../kubernetes/README.md`.
+  The mechanism is still valid, just currently has no live example — the `h2`
+  runtime dependency should be removed from `tn-auth-service-container` and
+  `tn-temporary-token-service-container` as part of adopting that, not carried
+  into the new `tn-user-service-container`.)
 - `src/main/assembly/assembly.xml`: lays out `bin/` (a `start.sh`, copied
   verbatim — `java -cp lib/*.jar <fully-qualified Application class>`, not
   `java -jar`, since there's no fat jar) and `lib/` (all resolved dependency

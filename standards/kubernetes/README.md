@@ -40,11 +40,11 @@ kustomize/
   add environment-only resources. This is the mechanism for "local needs its own
   database, another environment uses RDS": the base `Deployment` carries no
   datasource config at all; the `local` overlay's patch injects
-  `SPRING_DATASOURCE_*` env vars pointing at a file-backed embedded database
-  (H2 — see below) plus a `PersistentVolume`/`PersistentVolumeClaim` for it; an
-  RDS-backed overlay would instead inject `SPRING_DATASOURCE_URL` pointing at
-  the RDS endpoint and no PVC at all. The base Deployment doesn't change either
-  way.
+  `SPRING_DATASOURCE_*` env vars pointing at a real, containerised PostgreSQL
+  deployed in that overlay (see below) plus whatever storage that Postgres
+  deployment needs; an RDS-backed overlay would instead inject
+  `SPRING_DATASOURCE_URL` pointing at the RDS endpoint and no local database
+  deployment at all. The base Deployment doesn't change either way.
 - **Image tags** are set once, in `base/kustomization.yaml`'s `images:` list —
   overlays never repeat them.
 - **Labels**: every environment's kustomization applies a distinguishing pair
@@ -53,13 +53,21 @@ kustomize/
 
 ## Local environment specifics
 
-- The `local` overlay runs each service against a **file-backed H2 database**
-  (`jdbc:h2:file:/opt/<org>/<project>/<service>/data/<service>-db;AUTO_SERVER=TRUE`),
-  not a separate database pod — this is why `h2` is a `runtime`-scope dependency
-  on the *container* repo (see `../maven/build-and-ci.md`), not a test-only one.
-  A `PersistentVolume` + `PersistentVolumeClaim` back the data directory so it
-  survives pod restarts; the Deployment patch mounts it and sets
-  `runAsUser`/`fsGroup` so the container's non-root user can write to it.
+- **The `local` overlay runs each service against a real, containerised
+  PostgreSQL — not H2.** (Revised: the original version of this standard,
+  distilled from `pilch`, used a file-backed embedded H2 database precisely to
+  avoid a database pod locally. Superseded — H2 doesn't share Postgres's dialect
+  or behaviour, so a service tested/run against it locally isn't meaningfully
+  tested against what every real environment actually runs, and this layer
+  standardises on Postgres everywhere; see `../database/README.md`.) A
+  `postgres` deployment (official image, one instance covering the services in
+  that overlay unless a real reason emerges to split it) with a
+  `PersistentVolume`/`PersistentVolumeClaim` for its data directory takes H2's
+  place; each service's Deployment patch points `SPRING_DATASOURCE_URL` at it
+  instead of an embedded file path. `runAsUser`/`fsGroup` still apply to whatever
+  writes to the persisted volume — now the Postgres deployment, not each service.
+  `h2` is no longer a dependency of the container repos that made this switch
+  (see `../maven/build-and-ci.md`) — don't carry it forward into new ones.
 - Secrets/keys a service needs locally (e.g. JWT signing keys) go in an
   overlay-only `ConfigMap` (`config-local.yaml` today — a `Secret` would be the
   better primitive for real key material, worth revisiting) referenced via
@@ -68,9 +76,11 @@ kustomize/
   (`FOO_BAR_BAZ` → `foo.bar.baz`).
 - Non-local environments (staging, prod, ...) get their own overlay following the
   same shape; where a managed service replaces something local runs itself (RDS
-  instead of the H2 PVC, a managed secrets store instead of `config-local`), that
-  substitution lives entirely in that overlay — base and the other overlays don't
-  change.
+  instead of the self-hosted Postgres deployment, a managed secrets store instead
+  of `config-local`), that substitution lives entirely in that overlay — base and
+  the other overlays don't change. The point of running real Postgres locally too
+  is that this substitution is the *only* difference — not database engine as
+  well.
 
 ## Health probes
 

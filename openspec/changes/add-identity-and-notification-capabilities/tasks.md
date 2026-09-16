@@ -9,6 +9,14 @@
       correct for `tn-parent`'s Hibernate `7.2.7.Final`); verify `mvn clean
       install` still succeeds. (`io.hypersistence:hypersistence-tsid`, the raw
       generator, is already managed — no change needed there.)
+- [ ] 1.3 Bump `springdoc-openapi-starter-webmvc-ui` from `3.0.1` to `3.1.1`
+      (design.md Decision 12 / Risk — Jackson 2/3 mismatch on the current pin);
+      verify `mvn clean install`
+- [ ] 1.4 Add `org.springframework.boot:spring-boot-testcontainers` (version
+      `${spring-boot.version}`, test scope) and `org.testcontainers:junit-
+      jupiter:1.21.4` (test scope) to `dependencyManagement` (design.md
+      Decision 14; `org.testcontainers:postgresql` is already managed); verify
+      `mvn clean install`
 
 ## 2. Cross-service hygiene (from `standards-audit.md`, before the overhaul itself)
 
@@ -69,7 +77,22 @@
       contains no unmasked key material
 - [ ] 3.8 Drop the old `Email` table once 3.2–3.4 are confirmed working; verify
       with a clean-database integration test
-- [ ] 3.9 Create `tn-auth-service-container` (type `java-service-container`, per
+- [ ] 3.9 Annotate `GenerateController`/`RefreshController` for OpenAPI
+      (`@Tag`/`@Operation`/`@ApiResponse` per `standards/spring-boot/README.md`);
+      verify `/v3/api-docs` describes both endpoints with the new request/response
+      shape and Swagger UI renders them
+- [ ] 3.10 Migrate `shouldGenerateTokenPair.groovy`/`shouldRefreshTokenPair.groovy`
+      to Java contracts under `src/ct/java/contracts`, describing the new
+      identifier-based request/response shape (design.md Decision 13); verify the
+      generated contract tests pass and delete the `.groovy` files
+- [ ] 3.11 Remove the `h2` runtime dependency from this service's POM; verify
+      `mvn clean install` still succeeds with it gone
+- [ ] 3.12 Convert `EmailRepositoryTest`/`RefreshTokenRepositoryTest` (renamed to
+      match the new `Identifier` entity) to run against Testcontainers PostgreSQL
+      via `@ServiceConnection` instead of H2 (design.md Decision 14); verify they
+      pass against the container and check whether the bare annotation needs an
+      explicit name on this Spring Boot version (design.md Risk)
+- [ ] 3.13 Create `tn-auth-service-container` (type `java-service-container`, per
       `standards/kubernetes/README.md` and `standards/maven/build-and-ci.md`) —
       the oauth→auth rename moved the jar repo but never replaced
       `tn-oauth-service-container`, so no image can be built for this service
@@ -93,8 +116,27 @@
 - [ ] 4.5 Configure structured JSON logging with the identifier value masked (same
       approach as 3.6); verify with a test asserting a profile-creation log line
       does not contain the unmasked identifier
-- [ ] 4.6 Create `tn-user-service-container` — no container repo exists for this
-      service either (see 3.9); verify it produces a runnable image
+- [ ] 4.6 Investigate before annotating: `tn-user-service` has no `api`/controller
+      package of its own — its REST endpoints come from `tn-data-service`'s
+      generic `DataRepositoryAdaptor` CRUD framework. Determine whether OpenAPI
+      annotation belongs on that shared framework (affects every service built on
+      it, not just this one) or is achievable per-service before doing 4.7;
+      don't assume the per-controller `@Operation` pattern from `tn-auth-service`
+      applies unmodified here
+- [ ] 4.7 Add OpenAPI docs for `tn-user-service`'s endpoints per whatever 4.6
+      concludes; verify `/v3/api-docs` describes them with the new
+      identifier-based shape
+- [ ] 4.8 Migrate the Groovy contracts under `src/ct/resources/contracts/user/
+      {get,post,put}/*.groovy` to Java contracts describing the new
+      identifier-based request/response shape (design.md Decision 13); verify the
+      generated contract tests pass and delete the `.groovy` files
+- [ ] 4.9 Remove the `h2` runtime dependency from this service's POM; verify
+      `mvn clean install` still succeeds with it gone
+- [ ] 4.10 Convert `UserRepositoryIntegrationTest` to run against Testcontainers
+      PostgreSQL via `@ServiceConnection` instead of H2 (same approach as 3.12);
+      verify it passes against the container
+- [ ] 4.11 Create `tn-user-service-container` — no container repo exists for this
+      service either (see 3.13); verify it produces a runnable image
 
 ## 5. tn-notification-service (new)
 
@@ -104,6 +146,14 @@
       by identifier type; verify with a unit test per channel
 - [ ] 5.3 Surface a delivery failure to the caller rather than swallowing it;
       verify with a test simulating a provider error
+- [ ] 5.3a Annotate its controller for OpenAPI and write its contract tests in
+      Java under `src/ct/java/contracts` from the start (design.md Decisions
+      12/13/15 — nothing to migrate later if it's never non-compliant); verify
+      `/v3/api-docs` describes the send endpoint and the contract tests pass
+- [ ] 5.3b If this service ends up persisting anything (a delivery-record table,
+      say) it uses PostgreSQL/Testcontainers from the start, never H2 (design.md
+      Decision 14/15); not applicable if it turns out to be stateless — confirm
+      which before treating this as done or skipped
 - [ ] 5.4 Configure structured JSON logging with the message content and the
       identifier value masked from the start (this is the service the OTP flows
       through — see spec.md's rationale); verify with a test asserting a dispatch
@@ -115,9 +165,13 @@
       decision — see design.md Open Questions); verify with an integration test
       against a sandbox/test account
 - [ ] 5.7 Create `tn-notification-service-container`, following the same pattern
-      as 3.9; verify it produces a runnable image
+      as 3.13; verify it produces a runnable image
 
-## 6. tn-temporary-token-service: logging fix only
+## 6. tn-temporary-token-service: logging, docs, contracts, and database
+
+No identity/data-model change (its API is already identifier-agnostic) — but it
+picks up the same cross-cutting cleanup as the other two: logging (already
+planned), plus OpenAPI, Java contracts, and PostgreSQL/Testcontainers.
 
 - [ ] 6.1 Confirm the written spec matches current generate/verify behaviour
       exactly — no data-model change; verify by reading
@@ -130,6 +184,20 @@
 - [ ] 6.3 Register `com.tn.service.PropertyLogger` in `Application.java` (finding
       5 — currently absent here too); verify startup log output contains no
       unmasked key material
+- [ ] 6.4 Annotate `GenerateController`/`GetController`/`VerifyController` for
+      OpenAPI (design.md Decision 12); verify `/v3/api-docs` describes all three
+      endpoints
+- [ ] 6.5 Migrate the eight Groovy contracts under `src/ct/resources/contracts/
+      *.groovy` to Java contracts under `src/ct/java/contracts` — same
+      request/response content, format only (this API doesn't change, unlike
+      auth/user's — design.md Decision 13); verify the generated contract tests
+      pass and delete the `.groovy` files
+- [ ] 6.6 Remove the `h2` runtime dependency from both this service's POM *and*
+      `tn-temporary-token-service-container`'s (design.md Context — it's
+      currently declared in both); verify `mvn clean install` for each
+- [ ] 6.7 Convert `TokenRepositoryTest` to run against Testcontainers PostgreSQL
+      via `@ServiceConnection` instead of H2 (same approach as 3.12); verify it
+      passes against the container
 
 ## 7. tn-claude records
 
@@ -139,11 +207,11 @@
 - [ ] 7.2 Add/confirm `registry.yaml` entries, including `tn-notification-service`
       moving from `status: planned` to `active`, and the `groupId` fixes from §2.2;
       verify against the actual repos
-- [ ] 7.3 Fold the resolved `standards-audit.md` findings back into the standards
+- [x] 7.3 Fold the resolved `standards-audit.md` findings back into the standards
       themselves: the `idioms.md` final-field JPA exception (finding 7), the
-      `pom-style.md` `<repositories>` skeleton (finding 8, pending the Open
-      Questions decision), and a `logging/README.md` cross-reference to
-      `PropertyLogger` (finding 5); verify each referenced file is updated
+      `pom-style.md` `<repositories>` skeleton (finding 8, resolved in 2.6), and a
+      `logging/README.md` cross-reference to `PropertyLogger` (finding 5) — all
+      three done directly rather than left as tasks
 - [ ] 7.4 Archive this change (`openspec archive
       add-identity-and-notification-capabilities`) once 1–6 are done; verify
       `openspec validate --specs` passes afterwards

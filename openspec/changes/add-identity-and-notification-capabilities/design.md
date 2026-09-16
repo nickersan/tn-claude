@@ -42,6 +42,27 @@ assumed):
   `tn-user-service-container` — the oauth→auth rename moved the jar but never
   replaced the container repo, and `tn-user-service` never had one. Neither
   service can be deployed until its container repo exists — added as tasks.
+- All three services currently: use the Groovy contract DSL (`src/ct/resources/
+  contracts/*.groovy`, confirmed by reading `tn-auth-service`'s
+  `shouldGenerateTokenPair.groovy`/`shouldRefreshTokenPair.groovy` and the file
+  lists for the other two); depend on H2 (`runtime`-scope) *directly on the
+  service POM itself* for `tn-auth-service` and `tn-user-service` (neither has a
+  container repo yet — see Context above and `tasks.md` §3.9/§4.6);
+  `tn-temporary-token-service` has it in both places at once — its own service
+  POM *and* its existing `tn-temporary-token-service-container` — a small,
+  separate instance of the same "runtime-only deps belong in the container repo
+  only" violation, worth fixing while removing H2 anyway; have `springdoc-
+  openapi-starter-webmvc-ui` available via `tn-parent` but unused — no
+  controller carries an OpenAPI annotation anywhere in the three services.
+- `tn-user-service` has no `api`/controller package of its own — its REST
+  endpoints come entirely from `tn-data-service`'s generic
+  `DataRepositoryAdaptor` CRUD framework (confirmed:
+  `com.tn.user`'s only classes are `Application`, `ServiceConfiguration`,
+  `User`, `UserRepository`, `UserRepositoryImpl`). That's why its Groovy
+  contracts describe a generic get/post/put API rather than hand-written
+  endpoints like the other two services. This means Decision 12 (OpenAPI
+  annotations) may need to land on `tn-data-service` itself rather than
+  per-service — not yet resolved, see `tasks.md` §4.6.
 - **Nothing in `tn` (or anywhere else in this workspace) is in production.**
   These have been practice/exploratory projects; Okayat is the first one
   actually going live. That changes the weight of some caution below: there is
@@ -143,6 +164,63 @@ renamed. Rename to `authService` and `tn.auth-service.*` throughout as part of
 this overhaul, not left for later — carrying a half-finished rename into a
 "complete overhaul" defeats the point of doing one.
 
+**10. `var` removed from `tn-auth-service`, `tn-user-service`, and
+`tn-temporary-token-service`, no rescoping of the rule.** Resolves
+`standards-audit.md` finding 6: `java/idioms.md`'s "no `var`" rule stands as
+written and applies layer-wide, not just to `tn-lang`/`tn-query`. Every occurrence
+across all three services (production code and tests, ~90 instances) has been
+replaced with an explicit type. Done ahead of the identifier/TSID work in §3/§4 —
+not bundled into that diff — so those tasks start from a compliant baseline
+instead of extending a violation.
+
+**11. `<repositories>` removed from `tn-user-service`'s POM, not re-added
+anywhere.** Resolves `standards-audit.md` finding 8: it's inherited from
+`tn-parent` and was redundant. `maven/pom-style.md`'s skeleton updated to match
+(no longer shows repeating it). `tn-auth-service` and `tn-temporary-token-service`
+already omitted it correctly. `tn-lang`/`tn-query` still repeat it — out of scope
+here (they weren't part of this audit), worth the same cleanup later.
+
+**12. All three services' REST APIs get real OpenAPI docs via SpringDoc.**
+Per `standards/spring-boot/README.md`: `@Tag`/`@Operation`/`@ApiResponse` on
+every controller/endpoint, bumping `tn-parent`'s `springdoc-openapi-starter-
+webmvc-ui` pin from `3.0.1` to `3.1.1` (known Jackson 2/3 mismatch on the
+current pin — see Risks). Requested alongside the other cleanup, not because
+the identity model needs it — but doing it now, while these controllers are
+already being rewritten for the `Identifier` shape, is cheaper than a separate
+pass later.
+
+**13. Contract tests move from the Groovy DSL to the Java DSL.** Per
+`standards/spring-boot/README.md`: `src/ct/java/contracts/*.java` (`tn-parent`'s
+existing `contracts-producer-java` profile), not `src/ct/resources/contracts/
+*.groovy`. All three services currently use Groovy. For `tn-auth-service` and
+`tn-user-service`, the migrated contracts describe the *new* (post-overhaul)
+request/response shape — there is no reason to faithfully port a contract for an
+API this same change is deleting. For `tn-temporary-token-service`, whose API
+doesn't change, it's a straight format migration.
+
+**14. PostgreSQL replaces H2 everywhere — runtime and test.** Per
+`standards/database/README.md`: no more embedded/file-backed H2, in any of the
+three services or their container repos. `src/it` integration tests that need a
+real database use Testcontainers PostgreSQL with `@ServiceConnection` (new
+`tn-parent` managed dependencies: `spring-boot-testcontainers`,
+`org.testcontainers:junit-jupiter`); local Kubernetes deployment uses a real
+containerised Postgres instead of the file-backed H2 the `local` Kustomize
+overlay used to rely on (`standards/kubernetes/README.md`, revised). Rationale:
+matches what every real environment actually runs (AWS RDS PostgreSQL) — H2 was
+never meaningfully testing or running what production runs. `tn-user-service`'s
+current `h2` dependency lives directly in the service POM (not a container
+repo, since it never had one) — that's itself a smaller instance of the
+container-split violation `standards-audit.md` already flagged; removing `h2`
+here also fixes that. `tn-parent` keeps managing `h2` for other, untouched
+components — not removed layer-wide, just dropped from every component this
+change touches.
+
+**15. `tn-notification-service` and the new `tn-user-service-container`/
+`tn-auth-service-container` start compliant with 12–14 from day one.** No
+Groovy contracts, no H2, no un-annotated endpoints to begin with — same
+reasoning as Decision 7 in `okayat-platform`'s `initial-capabilities` change:
+nothing to migrate later if it's never non-compliant in the first place.
+
 ## Risks / Trade-offs
 
 Not treated as a risk: breaking the current `email`-only shape. Nothing in this
@@ -174,27 +252,21 @@ once Okayat (or anything else depending on these services) actually ships.
   its own first, separately-reviewable task before the identifier/TSID/logging
   work in §3, rather than folding a large parent-version jump into the same diff
   as the overhaul.
-
-**10. `var` removed from `tn-auth-service`, `tn-user-service`, and
-`tn-temporary-token-service`, no rescoping of the rule.** Resolves
-`standards-audit.md` finding 6: `java/idioms.md`'s "no `var`" rule stands as
-written and applies layer-wide, not just to `tn-lang`/`tn-query`. Every occurrence
-across all three services (production code and tests, ~90 instances) has been
-replaced with an explicit type. Done ahead of the identifier/TSID work in §3/§4 —
-not bundled into that diff — so those tasks start from a compliant baseline
-instead of extending a violation.
-
-**11. `<repositories>` removed from `tn-user-service`'s POM, not re-added
-anywhere.** Resolves `standards-audit.md` finding 8: it's inherited from
-`tn-parent` and was redundant. `maven/pom-style.md`'s skeleton updated to match
-(no longer shows repeating it). `tn-auth-service` and `tn-temporary-token-service`
-already omitted it correctly. `tn-lang`/`tn-query` still repeat it — out of scope
-here (they weren't part of this audit), worth the same cleanup later.
-
-## Open Questions
-
-- Which SMS/email provider(s) `tn-notification-service` integrates with first —
-  implementation detail of that service, doesn't change this contract.
+- [`springdoc-openapi` 3.0.1, currently pinned in `tn-parent`, has a known
+  Jackson 2/Jackson 3 mismatch that's real for us (`tn-parent` runs Jackson 3) —
+  see Decision 12] → Mitigation: bump the pin to `3.1.1` as part of this change,
+  not a follow-up.
+- [`@ServiceConnection` on a bare `PostgreSQLContainer` field has a reported
+  connection-resolution failure specifically on Spring Boot 4 — see Decision 14]
+  → Mitigation: `database/README.md` documents the explicit-name workaround;
+  confirm which is actually needed against `tn-parent`'s exact version when this
+  is implemented, don't assume untested.
+- [Migrating a contract's *format* (Groovy → Java) and its *content* (old API
+  shape → new) in the same change makes it harder to tell a translation mistake
+  from an intentional behaviour change] → Mitigation: write each migrated
+  contract to describe the new, already-decided API shape directly (Decisions
+  1–4), and verify it via the generated contract test passing against the real
+  implementation — not by diffing against the old `.groovy` file.
 
 ## Migration Plan
 

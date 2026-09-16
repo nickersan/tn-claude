@@ -44,6 +44,11 @@ consistently within a class.
   the way in (`Page` wraps its collection with `unmodifiableCollection(...)`).
 - Return an unmodifiable or copied view rather than the internal collection.
 - To "change" an immutable object, return a new instance from a `withX` method.
+- **Exception: JPA entities don't use `final` fields.** `@NoArgsConstructor` plus
+  Hibernate's reflection-based field access requires mutable fields — every JPA
+  entity in this codebase (`Email`, `Token`, `User`, `RefreshToken`, ...) is
+  built this way, consistently. This is the correct pattern for an entity, not a
+  gap to close; the immutability rule above is for value/AST types, not entities.
 
 ## Records
 
