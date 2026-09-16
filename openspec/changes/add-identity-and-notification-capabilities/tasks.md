@@ -140,10 +140,15 @@
 
   Folded into 3.2/3.3 — the migration file was rewritten in place rather
   than staged as a separate drop, so there's no old table left to drop.
-- [ ] 3.9 Annotate `GenerateController`/`RefreshController` for OpenAPI
+- [x] 3.9 Annotate `GenerateController`/`RefreshController` for OpenAPI
       (`@Tag`/`@Operation`/`@ApiResponse` per `standards/spring-boot/README.md`);
       verify `/v3/api-docs` describes both endpoints with the new request/response
       shape and Swagger UI renders them
+
+  `OpenApiDocsIntegrationTest` hits `/v3/api-docs` and asserts both paths are
+  described. Didn't separately verify Swagger UI rendering (no browser in
+  this environment) — the docs endpoint itself is the source Swagger UI
+  renders from, and it's confirmed correct.
 - [ ] 3.10 Migrate `shouldGenerateTokenPair.groovy`/`shouldRefreshTokenPair.groovy`
       to Java contracts under `src/ct/java/contracts`, describing the new
       identifier-based request/response shape (design.md Decision 13); verify the
