@@ -149,10 +149,24 @@
   described. Didn't separately verify Swagger UI rendering (no browser in
   this environment) — the docs endpoint itself is the source Swagger UI
   renders from, and it's confirmed correct.
-- [ ] 3.10 Migrate `shouldGenerateTokenPair.groovy`/`shouldRefreshTokenPair.groovy`
+- [x] 3.10 Migrate `shouldGenerateTokenPair.groovy`/`shouldRefreshTokenPair.groovy`
       to Java contracts under `src/ct/java/contracts`, describing the new
       identifier-based request/response shape (design.md Decision 13); verify the
       generated contract tests pass and delete the `.groovy` files
+
+  Found the `.groovy` files were never actually wired into the build (wrong
+  directory — `src/ct/resources/*.groovy`, not
+  `src/ct/resources/contracts/*.groovy`, so `contracts-producer-groovy` never
+  activated). Also found and fixed two real bugs in `tn-parent`'s
+  `contracts-producer-java` profile while getting the first real contracts
+  running against it: `contract-producer.base-test-class` (tn-auth-service's
+  own property) didn't match what the profile actually reads
+  (`contract-producer.base-class.tests`/`base-package.tests`), and the
+  profile itself set `packageWithBaseClasses` alongside `baseClassForTests`,
+  which silently switches Spring Cloud Contract to package-convention base
+  class discovery — broke every generated test until removed. Both fixed in
+  `tn-parent` (pushed, republished) and `tn-auth-service`. Generated
+  `ContractVerifierTest` passes both contracts.
 - [ ] 3.11 Remove the `h2` runtime dependency from this service's POM; verify
       `mvn clean install` still succeeds with it gone
 - [ ] 3.12 Convert `EmailRepositoryTest`/`RefreshTokenRepositoryTest` (renamed to
