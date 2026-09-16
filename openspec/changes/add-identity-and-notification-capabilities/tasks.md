@@ -167,13 +167,24 @@
   class discovery — broke every generated test until removed. Both fixed in
   `tn-parent` (pushed, republished) and `tn-auth-service`. Generated
   `ContractVerifierTest` passes both contracts.
-- [ ] 3.11 Remove the `h2` runtime dependency from this service's POM; verify
+- [x] 3.11 Remove the `h2` runtime dependency from this service's POM; verify
       `mvn clean install` still succeeds with it gone
-- [ ] 3.12 Convert `EmailRepositoryTest`/`RefreshTokenRepositoryTest` (renamed to
+- [x] 3.12 Convert `EmailRepositoryTest`/`RefreshTokenRepositoryTest` (renamed to
       match the new `Identifier` entity) to run against Testcontainers PostgreSQL
       via `@ServiceConnection` instead of H2 (design.md Decision 14); verify they
       pass against the container and check whether the bare annotation needs an
       explicit name on this Spring Boot version (design.md Risk)
+
+  Confirmed the bare annotation fails on this Spring Boot version — needed
+  `@ServiceConnection("postgresql")`. Also needed two dependencies not called
+  out anywhere: `org.postgresql:postgresql` (the JDBC driver itself) and
+  `org.flywaydb:flyway-database-postgresql` (Flyway's Postgres dialect) —
+  both now documented in `standards/database/README.md`. Removing H2 meant
+  every full `@SpringBootTest` context (not just `@DataJpaTest` ones) needed
+  its own Postgres container too, since Hibernate/Flyway wire a DataSource
+  at startup regardless of whether a given test touches it — added a shared
+  `AbstractPostgresIntegrationTest` base rather than repeating the container
+  four times.
 - [ ] 3.13 Create `tn-auth-service-container` (type `java-service-container`, per
       `standards/kubernetes/README.md` and `standards/maven/build-and-ci.md`) —
       the oauth→auth rename moved the jar repo but never replaced

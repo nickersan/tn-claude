@@ -77,9 +77,29 @@ class EmailRepositoryTest
 connection-details resolution
 ([spring-projects/spring-boot#48234](https://github.com/spring-projects/spring-boot/issues/48234),
 closed as user-config, not a framework bug). If auto-detection fails, give it an
-explicit name: `@ServiceConnection("postgresql")`. Confirm which is actually needed
-against `tn-parent`'s exact Spring Boot version when this is implemented — don't
-assume the bare annotation works untested.
+explicit name: `@ServiceConnection("postgresql")`. Confirmed needed —
+`tn-auth-service` got "Failed to determine a suitable driver class" with the bare
+annotation, fixed by naming it.
+
+**Two more dependencies needed alongside the ones above, confirmed while
+implementing this against `tn-auth-service`** (neither is optional, both already
+managed by `tn-parent`, just need declaring in the component):
+- `org.postgresql:postgresql` — the actual JDBC driver. `org.testcontainers:
+  postgresql` only manages the container; without the driver too, startup fails
+  with `ClassNotFoundException: org.postgresql.Driver`.
+- `org.flywaydb:flyway-database-postgresql` — Flyway's core module doesn't know
+  the Postgres dialect on its own; without this, Flyway fails with
+  `FlywayException: Unsupported Database: PostgreSQL <version>` even with the
+  driver present and a real Postgres container running.
+
+**Every full `@SpringBootTest` context needs a real datasource, not just tests
+that use `@DataJpaTest`** — Hibernate/Flyway auto-configure a `DataSource` at
+context startup regardless of whether a given test actually exercises
+persistence (e.g. a controller test that mocks the service layer entirely still
+needs one, now that H2 no longer transparently provides it). Share one
+`@Testcontainers`/`@Container`/`@ServiceConnection("postgresql")`-declaring
+abstract base class across such tests rather than repeating the container field
+in each one.
 
 ## Still placeholder
 
