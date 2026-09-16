@@ -185,13 +185,27 @@
   at startup regardless of whether a given test touches it — added a shared
   `AbstractPostgresIntegrationTest` base rather than repeating the container
   four times.
-- [ ] 3.13 Create `tn-auth-service-container` (type `java-service-container`, per
+- [x] 3.13 Create `tn-auth-service-container` (type `java-service-container`, per
       `standards/kubernetes/README.md` and `standards/maven/build-and-ci.md`) —
       the oauth→auth rename moved the jar repo but never replaced
       `tn-oauth-service-container`, so no image can be built for this service
       today; verify `mvn clean install` (the `assembly`/`docker` profiles
       auto-activate on the presence of `src/main/assembly/assembly.xml` and
       `Dockerfile`) produces a runnable image
+
+  Created private repo `nickersan/tn-auth-service-container`
+  (https://github.com/nickersan/tn-auth-service-container), pushed to `main`
+  (new repo, no CI risk). `mvn clean install` produces the image; actually
+  ran it (not just built it) and caught a real defect the build alone
+  wouldn't show: the pilch-derived Dockerfile template pins
+  `eclipse-temurin:21.0.2_13-jdk-alpine`, but `tn-parent` targets Java 25 —
+  the image crashed with `UnsupportedClassVersionError` until bumped to
+  `eclipse-temurin:25-jdk-alpine`. After that it starts the JVM and reaches
+  Spring Boot's own startup sequence, failing only on the expected "no
+  datasource configured" (no env vars supplied to this standalone smoke
+  test) — a deployment-config gap, not a packaging defect. Flagged in
+  `registry.yaml`, not fixed here, that the sibling container repos likely
+  have the same Java-version mismatch, unverified.
 
 ## 4. tn-user-service: overhaul
 

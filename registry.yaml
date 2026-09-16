@@ -62,12 +62,22 @@ components:
     groupId: com.tn.service
     repo: tn-auth-service
     notes: >-
-      JWT session issuance, email-keyed today. Supersedes tn-oauth-service.
-      See catalog.yaml requested_changes (identifier generalisation, requested by
-      okayat-platform). No tn-auth-service-container exists yet — the oauth->auth
-      rename moved the jar repo but never created a replacement for
-      tn-oauth-service-container, so this service cannot be deployed until one is
-      created.
+      JWT session issuance, keyed by a generic Identifier (email or phone) as of
+      the add-identity-and-notification-capabilities change. Supersedes
+      tn-oauth-service.
+
+  - name: tn-auth-service-container
+    type: java-service-container
+    groupId: com.tn
+    repo: tn-auth-service-container
+    notes: >-
+      Builds the deployable image for tn-auth-service — the oauth->auth rename
+      had moved the jar repo but never replaced tn-oauth-service-container;
+      this closes that gap. Base image is eclipse-temurin:25-jdk-alpine
+      (tn-parent targets Java 25) — confirmed by actually running the built
+      image, not just building it; the sibling repos' Java 21 base would crash
+      with UnsupportedClassVersionError against jars built to this pom's
+      release target.
 
   - name: tn-user-service
     type: java-spring-service
