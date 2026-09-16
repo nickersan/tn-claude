@@ -84,8 +84,20 @@ components:
     groupId: com.tn.service
     repo: tn-user-service
     notes: >-
-      Profile, email-keyed today. See catalog.yaml requested_changes (identifier
-      generalisation, requested by okayat-platform).
+      Profile, keyed by a generic Identifier (email or phone) as of the
+      add-identity-and-notification-capabilities change. Own hand-written
+      controller (REST CRUD + POST /v1/actions/find-or-create), replacing
+      tn-data-service's generic DataController.
+
+  - name: tn-user-service-container
+    type: java-service-container
+    groupId: com.tn
+    repo: tn-user-service-container
+    notes: >-
+      Builds the deployable image for tn-user-service — no container repo
+      existed for this service before now. Base image is
+      eclipse-temurin:25-jdk-alpine (tn-parent targets Java 25), following
+      tn-auth-service-container's precedent from the same change.
 
   - name: tn-notification-service
     type: java-spring-service

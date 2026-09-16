@@ -209,28 +209,54 @@
 
 ## 4. tn-user-service: overhaul
 
-- [ ] 4.1 Replace the `email` column with `identifierType` + `identifierValue`
+- [x] 4.1 Replace the `email` column with `identifierType` + `identifierValue`
       (unique together), primary key via TSID (same approach as 3.2); verify with
       a repository test covering both identifier types and asserting the
       generated id is TSID-shaped
-- [ ] 4.2 Relax `fullName`/`preferredName` from `@NotNull` to optional; verify a
+- [x] 4.2 Relax `fullName`/`preferredName` from `@NotNull` to optional; verify a
       profile can be created with only an identifier
-- [ ] 4.3 Enforce one profile per (type, value) pair; verify a duplicate-identifier
+- [x] 4.3 Enforce one profile per (type, value) pair; verify a duplicate-identifier
       creation is rejected
-- [ ] 4.4 Confirm the service exposes no token-issuing endpoint or field; verify by
+
+  Done together: `User` rewritten (`identifierType`/`identifierValue`, `@Tsid`,
+  nullable `fullName`/`preferredName`), migration rewritten in place (no real
+  deployed data, same as 3.2/3.3), unique constraint on
+  `(identifier_type, identifier_value)`. Duplicate-creation rejection verified
+  via `UserController`'s `DataIntegrityViolationException` → 409 handler
+  (finding 4.6 below), not a separate repository test — the constraint itself
+  is exercised there.
+- [x] 4.4 Confirm the service exposes no token-issuing endpoint or field; verify by
       reviewing the API against `specs/tn-user-service/spec.md`'s "This service
       does not issue or verify tokens" requirement
-- [ ] 4.5 Configure structured JSON logging with the identifier value masked (same
+
+  Reviewed `UserController`/`UserActionsController`/`UserResponse` — no token
+  field or endpoint anywhere.
+- [x] 4.5 Configure structured JSON logging with the identifier value masked (same
       approach as 3.6); verify with a test asserting a profile-creation log line
       does not contain the unmasked identifier
-- [ ] 4.6 Write `tn-user-service` an explicit `api`/controller package,
+
+  `logback-spring.xml` masks `identifierValue`; `UserController`/
+  `UserActionsController` log `identifierType` + the internal `userId` only,
+  never the raw value, same "log the event, not the payload" approach as 3.6.
+  `PropertyLogger` was already registered here (finding 5 only applied to
+  auth-service and temp-token-service).
+- [x] 4.6 Write `tn-user-service` an explicit `api`/controller package,
       replacing `tn-data-service`'s fully-generic `DataController` (design.md
       Decision 16 — resolved, not left as an investigation): REST-conventional
       `GET`/`POST`/`PUT`/`DELETE` on `/v1/users` for standard CRUD, filtering via
       `tn-query`/`QueryBuilder` (`?q=<expression>`) same as before, but hand-written
       so it's annotatable and has an explicit field-exposure surface; verify with
       controller tests covering get/create/update/delete
-- [ ] 4.7 Add `POST /v1/actions/find-or-create` (`standards/spring-boot/
+
+  `UserController` (CRUD) + `UserActionsController` (find-or-create).
+  `QueryBuilder` kept exactly as before, just called directly instead of via
+  the generic controller. `UserResponse` is an explicit record, not the JPA
+  entity, for the explicit field-exposure surface. Duplicate-identifier POST
+  maps `DataIntegrityViolationException` → 409. Verified with
+  `UserControllerIntegrationTest` (get, delete) and the six Java contracts
+  (get, list, create, create-conflict-shaped validation, find-or-create,
+  404).
+- [x] 4.7 Add `POST /v1/actions/find-or-create` (`standards/spring-boot/
       README.md`'s action-endpoint convention): request body the identifier,
       response the resulting profile whether pre-existing or just created;
       implement as a single Postgres upsert (`INSERT ... ON CONFLICT
@@ -239,27 +265,84 @@
       that run in any real environment, and in-process locking provides no such
       safety; verify with a test that fires concurrent find-or-create calls for
       the same new identifier and asserts exactly one profile results
-- [ ] 4.8 Paginate the list endpoint with `Pageable` (bound directly as a
+
+  `UserRepositoryImpl.findOrCreate` — native query, TSID generated in Java
+  (`TSID.fast()`) since a native insert bypasses Hibernate's own `@Tsid`
+  generator. `UserRepositoryFindOrCreateConcurrencyIntegrationTest` fires 16
+  concurrent calls for the same new identifier via an `ExecutorService` and
+  asserts exactly one row results — this test is what actually proved the
+  race-safety claim; writing the upsert alone wouldn't have. Surfaced a real
+  bug while getting it running: see 4.12's note on the Testcontainers
+  singleton-container gotcha.
+- [x] 4.8 Paginate the list endpoint with `Pageable` (bound directly as a
       controller parameter) wrapped in `PagedModel<T>` for the response — not
       `tn-data-service`'s `$pageNumber`/`$pageSize`/`$direction` params or a raw
       `Page<T>` body (`standards/spring-boot/README.md`); verify the standard
       `page`/`size`/`sort` request params work and the response shape is stable
       across a repeated call
-- [ ] 4.9 Annotate the new controller for OpenAPI; verify `/v3/api-docs`
+
+  `UserController.list` takes `Pageable` directly, wraps the result in
+  `PagedModel<UserResponse>`. `?q=` filtering kept separate from Spring's own
+  `page`/`size`/`sort` params (not passed through `QueryBuilder`, which still
+  only knows the old `$`-prefixed reserved names) — avoids a real collision
+  that would otherwise reject `page`/`size`/`sort` as unknown query fields.
+- [x] 4.9 Annotate the new controller for OpenAPI; verify `/v3/api-docs`
       describes every endpoint, including the action endpoint, with the new
       identifier-based shape
-- [ ] 4.10 Migrate the Groovy contracts under `src/ct/resources/contracts/user/
+
+  `OpenApiDocsIntegrationTest` asserts both `/v1/users` and
+  `/v1/actions/find-or-create` are described.
+- [x] 4.10 Migrate the Groovy contracts under `src/ct/resources/contracts/user/
       {get,post,put}/*.groovy` to Java contracts describing the new
       identifier-based request/response shape, plus a new contract for the
       find-or-create action (design.md Decision 13); verify the generated
       contract tests pass and delete the `.groovy` files
-- [ ] 4.11 Remove the `h2` runtime dependency from this service's POM; verify
+
+  Replaced all 30 Groovy contracts and their four Java base classes
+  (`Base`/`UserGetBase`/`UserPostBase`/`UserPutBase`/`UserSaveBase`) — those
+  were built entirely around the generic `DataApi`/`DataController` this
+  change deletes, including validation contracts
+  (missing-fullName/preferredName) for a rule that no longer exists (4.2).
+  Six new Java contracts cover the new controllers' core behaviour
+  (get/404/list/create/create-validation/find-or-create) — a representative
+  set, not a 1:1 port of all 30, per design.md Decision 13. Had to also fix
+  `contract-producer.base-class.package` (a stale Groovy-profile-era property
+  name) to `contract-producer.base-class.tests`/`base-package.tests`, same
+  issue 3.10 found and fixed for `tn-auth-service`.
+- [x] 4.11 Remove the `h2` runtime dependency from this service's POM; verify
       `mvn clean install` still succeeds with it gone
-- [ ] 4.12 Convert `UserRepositoryIntegrationTest` to run against Testcontainers
+- [x] 4.12 Convert `UserRepositoryIntegrationTest` to run against Testcontainers
       PostgreSQL via `@ServiceConnection` instead of H2 (same approach as 3.12);
       verify it passes against the container
-- [ ] 4.13 Create `tn-user-service-container` — no container repo exists for this
+
+  Same `org.postgresql:postgresql` + `flyway-database-postgresql` +
+  `@ServiceConnection("postgresql")` needs as 3.12. Also found two more real
+  issues specific to this service, now fixed in `tn-parent` (pushed,
+  republished) and documented centrally so `tn-notification-service`/
+  `tn-temporary-token-service` don't hit them blind:
+  - `tn-query-jpa` transitively pulls `spring-data-commons:3.4.4` and
+    `jakarta.persistence-api:3.1.0`, both incompatible with what Boot 4.0.5
+    itself manages (`RepositoryFragmentsContributor`, `FindOption` missing
+    respectively) — excluded both from `tn-data-service-jpa`'s dependency.
+  - Spring MVC's `@PathVariable`/`@RequestParam` binding by name needs the
+    `-parameters` javac flag, which `tn-parent` didn't set — added it there
+    (global fix, every future `@PathVariable` usage hits this identically).
+  - The shared `AbstractPostgresIntegrationTest` base class's
+    `@Testcontainers`/`@Container` fields stop the container after the first
+    extending test class finishes, breaking every other class sharing it in
+    the same Surefire-reused JVM — switched to Testcontainers' documented
+    singleton-container pattern (manual start, never stop); see
+    `standards/database/README.md`. Also fixed proactively in
+    `tn-auth-service`, which has the identical pattern.
+- [x] 4.13 Create `tn-user-service-container` — no container repo exists for this
       service either (see 3.13); verify it produces a runnable image
+
+  Created private repo `nickersan/tn-user-service-container`
+  (https://github.com/nickersan/tn-user-service-container), pushed to `main`
+  (new repo, no CI risk). Used `eclipse-temurin:25-jdk-alpine` from the
+  start (learned from 3.13). Actually ran the built image; reaches Spring
+  Boot's own startup sequence, failing only on the expected "no datasource
+  configured" (no env vars in this standalone smoke test).
 
 ## 5. tn-notification-service (new)
 
