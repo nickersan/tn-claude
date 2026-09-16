@@ -97,9 +97,39 @@ that use `@DataJpaTest`** — Hibernate/Flyway auto-configure a `DataSource` at
 context startup regardless of whether a given test actually exercises
 persistence (e.g. a controller test that mocks the service layer entirely still
 needs one, now that H2 no longer transparently provides it). Share one
-`@Testcontainers`/`@Container`/`@ServiceConnection("postgresql")`-declaring
-abstract base class across such tests rather than repeating the container field
-in each one.
+abstract base class declaring the container across such tests rather than
+repeating the container field in each one — but see the singleton-container
+gotcha immediately below before reaching for `@Testcontainers`/`@Container` to
+do it.
+
+**Gotcha confirmed the hard way: don't use `@Testcontainers`/`@Container` on a
+container field declared in a shared abstract base class.** Those annotations
+stop the container after the *first* test class that used it finishes — every
+other class extending the same base then fails with `Connection refused`,
+because Maven Surefire reuses one JVM across test classes by default, so the
+static field (and the now-stopped container it points to) is shared, not
+reset per class. `tn-user-service`'s find-or-create concurrency test (§4.7)
+hit this directly. Fix: Testcontainers' own documented "singleton container"
+pattern — start the container manually in a static initializer, no
+`@Testcontainers`/`@Container` annotations, and never call `.stop()` (Ryuk
+reaps it when the JVM exits):
+
+```java
+public abstract class AbstractPostgresIntegrationTest
+{
+  @ServiceConnection("postgresql")
+  static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
+
+  static
+  {
+    postgres.start();
+  }
+}
+```
+
+A container declared directly inside one `@DataJpaTest` class (not via a
+shared base) doesn't have this problem — each class's own static field is
+independent, so the normal `@Testcontainers`/`@Container` form is fine there.
 
 ## Still placeholder
 
