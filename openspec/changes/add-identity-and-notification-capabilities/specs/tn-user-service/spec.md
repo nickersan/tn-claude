@@ -37,6 +37,30 @@ are optional and may be supplied later.
 - **WHEN** a caller creates a profile supplying only the identifier
 - **THEN** the system creates the profile without requiring a name
 
+### Requirement: Find-or-create by identifier is a single safe operation
+The system SHALL provide a find-or-create operation that, given an identifier,
+returns the existing profile for it or creates one if none exists, and SHALL
+guarantee at most one profile is ever created for a given identifier even when
+the operation is called concurrently for the same new identifier (the system
+runs as multiple instances in any real environment, so this guarantee SHALL
+hold across instances, not just within one process).
+
+#### Scenario: Creates when absent
+- **WHEN** a caller invokes find-or-create for an identifier with no existing
+  profile
+- **THEN** the system creates a profile for that identifier and returns it
+
+#### Scenario: Returns the existing profile when present
+- **WHEN** a caller invokes find-or-create for an identifier that already has a
+  profile
+- **THEN** the system returns the existing profile without creating another one
+
+#### Scenario: Concurrent calls for the same new identifier create exactly one profile
+- **WHEN** two or more calls invoke find-or-create for the same identifier at
+  the same time, and no profile exists for it beforehand
+- **THEN** exactly one profile is created, and every caller receives that same
+  profile
+
 ### Requirement: This service does not issue or verify tokens
 The system SHALL NOT issue, refresh, or verify a session token — that is
 `tn-auth-service`'s responsibility, not this service's.

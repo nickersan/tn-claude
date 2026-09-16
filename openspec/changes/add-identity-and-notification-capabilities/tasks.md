@@ -116,26 +116,42 @@
 - [ ] 4.5 Configure structured JSON logging with the identifier value masked (same
       approach as 3.6); verify with a test asserting a profile-creation log line
       does not contain the unmasked identifier
-- [ ] 4.6 Investigate before annotating: `tn-user-service` has no `api`/controller
-      package of its own — its REST endpoints come from `tn-data-service`'s
-      generic `DataRepositoryAdaptor` CRUD framework. Determine whether OpenAPI
-      annotation belongs on that shared framework (affects every service built on
-      it, not just this one) or is achievable per-service before doing 4.7;
-      don't assume the per-controller `@Operation` pattern from `tn-auth-service`
-      applies unmodified here
-- [ ] 4.7 Add OpenAPI docs for `tn-user-service`'s endpoints per whatever 4.6
-      concludes; verify `/v3/api-docs` describes them with the new
+- [ ] 4.6 Write `tn-user-service` an explicit `api`/controller package,
+      replacing `tn-data-service`'s fully-generic `DataController` (design.md
+      Decision 16 — resolved, not left as an investigation): REST-conventional
+      `GET`/`POST`/`PUT`/`DELETE` on `/v1/users` for standard CRUD, filtering via
+      `tn-query`/`QueryBuilder` (`?q=<expression>`) same as before, but hand-written
+      so it's annotatable and has an explicit field-exposure surface; verify with
+      controller tests covering get/create/update/delete
+- [ ] 4.7 Add `POST /v1/actions/find-or-create` (`standards/spring-boot/
+      README.md`'s action-endpoint convention): request body the identifier,
+      response the resulting profile whether pre-existing or just created;
+      implement as a single Postgres upsert (`INSERT ... ON CONFLICT
+      (identifier_type, identifier_value) DO UPDATE ... RETURNING *`), not
+      check-then-insert — this must be race-safe across the multiple instances
+      that run in any real environment, and in-process locking provides no such
+      safety; verify with a test that fires concurrent find-or-create calls for
+      the same new identifier and asserts exactly one profile results
+- [ ] 4.8 Paginate the list endpoint with `Pageable` (bound directly as a
+      controller parameter) wrapped in `PagedModel<T>` for the response — not
+      `tn-data-service`'s `$pageNumber`/`$pageSize`/`$direction` params or a raw
+      `Page<T>` body (`standards/spring-boot/README.md`); verify the standard
+      `page`/`size`/`sort` request params work and the response shape is stable
+      across a repeated call
+- [ ] 4.9 Annotate the new controller for OpenAPI; verify `/v3/api-docs`
+      describes every endpoint, including the action endpoint, with the new
       identifier-based shape
-- [ ] 4.8 Migrate the Groovy contracts under `src/ct/resources/contracts/user/
+- [ ] 4.10 Migrate the Groovy contracts under `src/ct/resources/contracts/user/
       {get,post,put}/*.groovy` to Java contracts describing the new
-      identifier-based request/response shape (design.md Decision 13); verify the
-      generated contract tests pass and delete the `.groovy` files
-- [ ] 4.9 Remove the `h2` runtime dependency from this service's POM; verify
+      identifier-based request/response shape, plus a new contract for the
+      find-or-create action (design.md Decision 13); verify the generated
+      contract tests pass and delete the `.groovy` files
+- [ ] 4.11 Remove the `h2` runtime dependency from this service's POM; verify
       `mvn clean install` still succeeds with it gone
-- [ ] 4.10 Convert `UserRepositoryIntegrationTest` to run against Testcontainers
+- [ ] 4.12 Convert `UserRepositoryIntegrationTest` to run against Testcontainers
       PostgreSQL via `@ServiceConnection` instead of H2 (same approach as 3.12);
       verify it passes against the container
-- [ ] 4.11 Create `tn-user-service-container` — no container repo exists for this
+- [ ] 4.13 Create `tn-user-service-container` — no container repo exists for this
       service either (see 3.13); verify it produces a runnable image
 
 ## 5. tn-notification-service (new)

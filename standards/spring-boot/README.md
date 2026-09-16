@@ -96,6 +96,97 @@ public class ShouldGenerateTokenPair implements Supplier<Collection<Contract>>
   move and the trigger directory (`src/ct/java/contracts` instead of
   `src/ct/resources/contracts`).
 
+## API design — REST for resources, `/actions/` for everything else
+
+**Resource-shaped operations (get/create/update/delete/list-and-filter a thing)
+stay REST-conventional: `GET`/`POST`/`PUT`/`DELETE` on the resource's own path,
+filtering via `tn-query` (`?q=<expression>`, validated against the entity's actual
+fields the way `tn-data-service`'s `QueryBuilder` already does it).** Keep that —
+it's a good, consistent convention across the layer and worth preserving even
+where a hand-written controller replaces `tn-data-service`'s fully-generic one
+(see `../database/README.md` and the identity-overhaul change's design.md for why
+a generic auto-registered controller isn't always the right fit, even though the
+*conventions* it established are).
+
+**Operations that don't map onto a single resource verb get an explicit action
+path instead of being forced into CRUD shape: `POST /v1/actions/<kebab-case-
+name>`.** A find-or-create is the motivating example — it's not "insert" (might
+already exist) or "update" (might not exist yet) or a plain "get" (may need to
+create); it's its own operation, so it gets its own path rather than a strained
+mapping onto `POST`/`PUT`/`GET`:
+
+```
+POST /v1/actions/find-or-create
+```
+
+Request body: the identifier (type + value). Response: the resulting record,
+whether it already existed or was just created. Same rules as any other
+endpoint — `@Operation`/`@ApiResponse` annotated, its own Java contract, no
+special-casing just because the path looks different.
+
+Use this pattern sparingly — most operations genuinely are resource CRUD, and
+`/actions/` is for the real exceptions, not a way to avoid thinking about REST
+shape. If a service accumulates several action endpoints, that's a signal to
+look again at whether it's still the right service boundary.
+
+## Pagination — Spring Data's native `Pageable`, not a hand-rolled scheme
+
+**Don't reinvent pagination query params.** `tn-data-service` currently does —
+custom `$pageNumber`/`$pageSize`/`$sort`/`$direction` params and a hand-rolled
+`com.tn.lang.util.Page` response wrapper. That's now superseded: accept
+`org.springframework.data.domain.Pageable` directly as a controller method
+parameter (Spring Boot auto-configures `PageableHandlerMethodArgumentResolver`
+whenever `spring-data-commons` is on the classpath, which it already is via
+`spring-boot-starter-data-jpa`) — it resolves the standard `page`, `size`, and
+repeatable `sort` (`sort=name,desc`) request params for you, no bespoke parsing.
+
+**Don't serialize `Page<T>` directly — it's explicitly not a stable contract.**
+Spring Data's own docs warn that `PageImpl`'s JSON shape can change between
+versions. Since Spring Data 3.3 (well below what `tn-parent` manages),
+`org.springframework.data.web.PagedModel<T>` gives a stable wrapper without
+needing Spring HATEOAS: `new PagedModel<>(page)`, or enable it service-wide with
+`@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)`.
+
+**For a large, deep-scrolled dataset, prefer keyset pagination over offset —
+`Window<T>`/`ScrollPosition` (Spring Data 3.1+) — instead of `Pageable`.** Offset
+pagination gets slower as the offset grows (the database scans and discards
+every skipped row); keyset pagination uses an indexed `WHERE` clause instead and
+stays fast at any depth, at the cost of no "jump to page N" and no total count.
+Not needed for a small/bounded dataset (a user-profile table, say) — worth
+reaching for on something users might actually scroll deep into (candidate:
+`locations/search`'s anonymous browse, if it ever needs to support that — not
+decided, see `okayat-platform`'s own design.md).
+
+## Concurrency-safe find-or-create (and any other check-then-act operation)
+
+**Every service in this layer runs as multiple instances in any real
+environment — in-process synchronization (a `synchronized` block, a local lock)
+provides no safety at all across them.** A find-or-create (or any other
+check-then-act sequence — "does this exist, if not create it") must be made safe
+by the database, not the application process. On PostgreSQL, the idiomatic
+one-statement version is an upsert against the unique constraint:
+
+```sql
+INSERT INTO identifier (identifier_type, identifier_value, ...)
+VALUES (:type, :value, ...)
+ON CONFLICT (identifier_type, identifier_value)
+DO UPDATE SET identifier_value = EXCLUDED.identifier_value
+RETURNING *;
+```
+
+The `DO UPDATE SET <col> = EXCLUDED.<col>` (a functional no-op) is the standard
+Postgres idiom to make `RETURNING` give you the existing row on conflict, not
+just on insert — `DO NOTHING` alone returns no row when the conflict branch
+fires. Alternative if a raw upsert doesn't fit cleanly (e.g. behind Spring Data
+JPA's repository abstraction): attempt the insert, catch the
+`DataIntegrityViolationException` Spring translates a unique-constraint
+violation into, and re-`find` on conflict — but be deliberate about the
+transaction boundary if you do, since a caught constraint violation still marks
+a surrounding `@Transactional` rollback-only in Spring; the insert attempt and
+the conflict re-fetch need to be arranged so the retry isn't silently doomed by
+the same transaction. The native upsert avoids that wrinkle entirely, which is
+why it's the preferred shape.
+
 ## Still placeholder
 
 - Application / configuration class layout, `@ConfigurationProperties` usage.

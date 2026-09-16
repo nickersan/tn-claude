@@ -60,9 +60,8 @@ assumed):
   `com.tn.user`'s only classes are `Application`, `ServiceConfiguration`,
   `User`, `UserRepository`, `UserRepositoryImpl`). That's why its Groovy
   contracts describe a generic get/post/put API rather than hand-written
-  endpoints like the other two services. This means Decision 12 (OpenAPI
-  annotations) may need to land on `tn-data-service` itself rather than
-  per-service — not yet resolved, see `tasks.md` §4.6.
+  endpoints like the other two services. Reviewed properly and resolved — see
+  Decision 16 — rather than left as an open investigation.
 - **Nothing in `tn` (or anywhere else in this workspace) is in production.**
   These have been practice/exploratory projects; Okayat is the first one
   actually going live. That changes the weight of some caution below: there is
@@ -221,6 +220,46 @@ Groovy contracts, no H2, no un-annotated endpoints to begin with — same
 reasoning as Decision 7 in `okayat-platform`'s `initial-capabilities` change:
 nothing to migrate later if it's never non-compliant in the first place.
 
+**16. `tn-user-service` gets an explicit controller, replacing
+`tn-data-service`'s fully-generic one — reviewed, not assumed.** Reviewed
+`tn-data-service`/`-jpa`/`-jdbc` in full (separate discussion, not repeated
+here). Verdict: the reusable pieces (`QueryBuilder`'s validated `tn-query`
+filtering, `IdentityParser`, the JDBC repository's batching) are worth keeping;
+the fully-generic auto-registered `DataController<V,ID>` is the wrong
+abstraction for a service that's no longer pure CRUD. Concretely, three things
+about `tn-user-service` post-overhaul don't fit a generic entity-store
+controller:
+- **Find-or-create** (needed by `okayat-bff`'s login composition) isn't a CRUD
+  verb — `DataApi` has no operation for "return the existing row for this key,
+  or create one." Composing it from `GET` + conditional `POST` is a race
+  between concurrent first-logins for the same new identifier — real, since
+  every service in this layer runs as multiple instances (user's explicit
+  correction — see Decisions below and `standards/spring-boot/README.md`).
+- **The spec's duplicate-identifier rejection needs a real 4xx**, and
+  `DataController`'s actual exception mapping only produces a generic 500
+  (`InsertException`/`UpdateException`/`DeleteException` → `internalServerError`)
+  — checked the code, not assumed; meeting the spec as written needs bespoke
+  handling regardless of which repository layer is underneath.
+- **`QueryBuilder` exposes every declared field as filterable by default**
+  (opt-out via constructor varargs, not opt-in) — fine for a low-exposure
+  lookup table, not the right default next to a spec that's explicit about
+  *not* leaking certain fields (`locations/search`'s organizer-contact
+  exclusion is the model to follow, even though that's a different service).
+
+Kept from `tn-data-service`'s conventions rather than thrown out: REST-
+conventional `GET`/`POST`/`PUT`/`DELETE` for the resource, and `tn-query`-based
+filtering (`?q=...`) via `QueryBuilder` directly — those are good, worth the
+consistency, and the hand-written controller uses them the same way `tn-data-
+service` did. What changes is that they're explicit and annotatable rather
+than auto-generated, and the non-CRUD find-or-create gets its own path
+(`POST /v1/actions/find-or-create`) rather than being forced into a resource
+verb — see `standards/spring-boot/README.md`'s new API-design and pagination
+sections (the pagination piece is unrelated to this specific finding but
+landed at the same time: `Pageable`/`PagedModel` replaces `tn-data-service`'s
+`$pageNumber`/`$pageSize`/`$direction` params, per current Spring Data
+guidance, verified — not assumed — including the documented reason
+`PageImpl` shouldn't be serialized directly).
+
 ## Risks / Trade-offs
 
 Not treated as a risk: breaking the current `email`-only shape. Nothing in this
@@ -256,6 +295,12 @@ once Okayat (or anything else depending on these services) actually ships.
   Jackson 2/Jackson 3 mismatch that's real for us (`tn-parent` runs Jackson 3) —
   see Decision 12] → Mitigation: bump the pin to `3.1.1` as part of this change,
   not a follow-up.
+- [The find-or-create upsert (Decision 16) is only actually race-safe if the
+  `ON CONFLICT` target matches the real unique constraint exactly — a typo'd or
+  out-of-date constraint reference would silently reintroduce the race] →
+  Mitigation: the concurrent-call test in `tasks.md` §4.7 is the thing that
+  actually proves this, not a code review; don't consider that task done from
+  reading the SQL alone.
 - [`@ServiceConnection` on a bare `PostgreSQLContainer` field has a reported
   connection-resolution failure specifically on Spring Boot 4 — see Decision 14]
   → Mitigation: `database/README.md` documents the explicit-name workaround;
