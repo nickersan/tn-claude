@@ -1,0 +1,49 @@
+schema: spec-driven
+
+context: |
+  This tree specifies CAPABILITY CONTRACTS for tn-* services — what a shared service
+  promises to the projects that depend on it (requirements + testable scenarios). It
+  is deliberately separate from:
+    - standards/ (Java, Maven, component-type conventions) — direct-edit convention
+      docs, not proposal/change workflow. Do not duplicate standards content here.
+    - a project's own <project>-platform openspec tree (e.g. okayat-platform) — that
+      is where PRODUCT specs live (what a specific project's features do). tn has no
+      product features of its own.
+
+  Capability paths match the service name (flat, e.g. `tn-auth-service`,
+  `tn-notification-service`), consistent with catalog.yaml's `id:` field.
+
+  Backfill incrementally: do not write a spec for a tn-* service until its capability
+  is actually being added to or changed by some piece of work. Most existing
+  services (tn-lang, tn-query, tn-service, ...) have no spec here yet — that's
+  expected, not a gap to rush to fill.
+
+  A change here is usually motivated by a consuming project (e.g. okayat-platform).
+  Cross-reference it both ways: this change's proposal.md names the requesting
+  project/change in its Why section; catalog.yaml's `requested_changes` on the
+  affected service points back to this change. Once archived, the resulting
+  specs/<service>/spec.md is the durable, multi-project-readable contract — the
+  requesting project's own design.md should stop being the source of truth for tn
+  behaviour and reference this instead.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing

@@ -1,0 +1,119 @@
+# Maps a component `type` to the standard sets that apply to it.
+# A component follows the union of the referenced sets.
+#
+# Standard set names correspond to directories under standards/.
+# "conditional" entries apply only when the stated condition holds.
+
+version: 1
+
+standard_sets:
+  - conventions      # general naming / repo / documentation conventions (placeholder)
+  - java             # JVM language + testing conventions
+  - maven            # Maven project structure, dependencies, build, CI
+  - spring-boot      # Spring Boot service conventions (placeholder)
+  - react            # React / web UI conventions (placeholder)
+  - typescript       # framework-agnostic TypeScript conventions (placeholder)
+  - database         # schema, migrations, naming (placeholder)
+  - kubernetes       # deployment / manifests (placeholder)
+  - logging          # structured, masked logging for long-running services
+
+types:
+
+  java-library:
+    description: >-
+      A JVM library published to the Maven repository and consumed by other
+      components. No runtime host. Examples: tn-lang, tn-query.
+    applies:
+      - conventions
+      - java
+      - maven
+
+  java-spring-service:
+    description: >-
+      A Spring Boot service. Produces a jar only — packaging it as a Docker image
+      and deploying it are the job of a paired `<name>-container` repo (type
+      `java-service-container`) and the project's kustomize-deployment repo. Don't
+      add a Dockerfile here.
+    applies:
+      - conventions
+      - java
+      - maven
+      - spring-boot
+      - kubernetes
+      - logging
+    applies_conditional:
+      - set: database
+        when: the service owns a relational schema (Flyway migrations present)
+
+  java-service-container:
+    description: >-
+      Packages an already-published java-spring-service jar into a Docker image.
+      Always a separate repo from the jar it packages (`<name>-container`, e.g.
+      `tn-temporary-token-service-container` for `tn-temporary-token-service`) —
+      never a Dockerfile inside the service repo. Depends on the jar as a normal
+      Maven dependency (pulls the published artifact, doesn't build from source),
+      which keeps the jar an independently-versioned artifact and lets the
+      container repo weave in runtime-only dependencies the jar itself doesn't
+      need (e.g. an embedded-H2 runtime dependency for local deployment). Built via
+      `tn-parent`'s `assembly` + `docker` profiles — see `maven/build-and-ci.md`.
+    applies:
+      - conventions
+      - maven
+      - kubernetes
+
+  kustomize-deployment:
+    description: >-
+      Layered Kustomize manifests (base + per-environment overlays) composing a
+      project's own components and the tn-layer components it depends on into one
+      deployable set. Lives at the project level (e.g. `okayat-kustomize`), not in
+      tn-claude — tn itself has no environment of its own to deploy to.
+    applies:
+      - conventions
+      - kubernetes
+
+  java-cli:
+    description: >-
+      A command-line tool built on the JVM. Examples: tn-cli.
+    applies:
+      - conventions
+      - java
+      - maven
+
+  react-web:
+    description: >-
+      A React single-page or server-rendered web UI, deployed to Kubernetes.
+    applies:
+      - conventions
+      - react
+      - kubernetes
+
+  native-ui:
+    description: >-
+      A native client UI, e.g. React Native (Expo). Standards TBD beyond the
+      framework-agnostic TypeScript set; general conventions still apply.
+    applies:
+      - conventions
+      - typescript
+
+  typescript-client-library:
+    description: >-
+      A framework-agnostic TypeScript package, typically capturing what a BFF
+      provides for one or more frontends to consume (web and/or native). Not tied
+      to React. Example: okayat-client.
+    applies:
+      - conventions
+      - typescript
+
+  acceptance-suite:
+    description: >-
+      A feature-oriented end-to-end test suite for one project, run against a
+      deployed environment. Owns no production code. Example: okayat-acceptance.
+    applies:
+      - conventions
+
+  database-schema:
+    description: >-
+      A component whose deliverable is a database schema and its migrations.
+    applies:
+      - conventions
+      - database

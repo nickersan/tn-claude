@@ -1,0 +1,99 @@
+# Capabilities the `tn` layer provides to projects above it.
+# Projects read this while writing specs. If a needed capability is not here,
+# the spec records it as "requires new tn-claude capability" and work is
+# scheduled in the relevant tn-* repo.
+#
+# `spec:` (once set) points at this repo's own openspec/specs/<id>/spec.md — the
+# durable, testable contract for that capability. `spec_change:` points at an
+# in-flight openspec/changes/<name> proposing or revising that contract. See
+# openspec/config.yaml for how this tree relates to standards/ and to a consuming
+# project's own <project>-platform spec tree.
+#
+# Status: initial skeleton. Entries below are seeded from known repos and will be
+# filled out (APIs, coordinates, contracts) as each is confirmed against its source.
+
+version: 1
+
+capabilities:
+
+  - id: tn-lang
+    kind: library
+    summary: Language-level utility classes and functions (Strings, Objects, Iterables, Page, functional helpers).
+    artifact: com.tn:tn-lang
+    repo: tn-lang
+    contract: n/a (plain library)
+
+  - id: tn-query
+    kind: library
+    summary: Safe, simple predicate-string parsing into pluggable predicate implementations (Java, JDBC, JPA).
+    artifact: com.tn.query:tn-query
+    repo: tn-query
+    contract: n/a (plain library)
+    related:
+      - com.tn.query:tn-query-java
+      - com.tn.query:tn-query-jdbc
+      - com.tn.query:tn-query-jpa
+
+  - id: tn-parent
+    kind: build
+    summary: Parent POM aligning Java level, dependency versions, plugin config and test-layer wiring for all JVM builds.
+    artifact: com.tn:tn-parent
+    repo: tn-parent
+
+  - id: tn-temporary-token-service
+    kind: service
+    summary: >-
+      Generic one-time-token generate/verify (owner string + type NUMERIC|BASE64 +
+      TTL in minutes). No notion of email/phone/identity — the caller decides what
+      "owner" means. Reused as-is for OTP-style login flows.
+    repo: tn-temporary-token-service
+    api: POST /v1/generate, POST /v1/verify, GET (lookup)
+    status: active
+    spec_change: add-identity-and-notification-capabilities
+
+  - id: tn-auth-service
+    kind: service
+    summary: >-
+      Mints JWT access/refresh token pairs. Currently keyed only to an `Email`
+      domain object (auto-created on first use, claimed as `email` in the JWT) —
+      no non-email identifier exists yet. Supersedes tn-oauth-service (deprecated,
+      same code under the `com.tn.oauthservice` package / `pilch.oauth-service.*`
+      properties).
+    repo: tn-auth-service
+    api: POST /v1/generate, POST /v1/refresh
+    status: active
+    spec_change: add-identity-and-notification-capabilities
+    requested_changes:
+      - id: generalise-identifier
+        summary: Generalise from Email-only to a generic Identifier (EMAIL | PHONE).
+        requested_by: okayat-platform / initial-capabilities
+        tracked_by: tn-claude openspec/changes/add-identity-and-notification-capabilities
+
+  - id: tn-user-service
+    kind: service
+    summary: >-
+      User profile (email, fullName, preferredName, tokenSubject). `email` is
+      `@NotNull @Email unique` — no phone field.
+    repo: tn-user-service
+    status: active
+    spec_change: add-identity-and-notification-capabilities
+    requested_changes:
+      - id: generalise-identifier
+        summary: Add a phone identifier alongside email, consistent with tn-auth-service's generalisation.
+        requested_by: okayat-platform / initial-capabilities
+        tracked_by: tn-claude openspec/changes/add-identity-and-notification-capabilities
+
+  - id: tn-notification-service
+    kind: service
+    summary: >-
+      Dispatch a message (e.g. an OTP) to an email address or phone number, behind
+      one send interface. Does not exist yet.
+    repo: tn-notification-service
+    status: requested
+    requested_by: okayat-platform / initial-capabilities
+    spec_change: add-identity-and-notification-capabilities
+
+  # Services present in the tn layer but not yet catalogued in detail:
+  #   tn-service, tn-data-service(-jdbc/-jpa), tn-directory-service,
+  #   tn-element-service, tn-file-service, tn-storage-service, tn-cli,
+  #   tn-client-feign

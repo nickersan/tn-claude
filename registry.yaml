@@ -1,0 +1,95 @@
+# Inventory of tn-layer component repositories.
+# One entry per independently-releasable repo. `type` selects which standard sets
+# apply (see standards/component-types.yaml).
+#
+# Status: initial skeleton — types are best-effort from directory inspection and
+# should be confirmed against each repo's own component.yaml when that is added.
+
+version: 1
+layer: tn-claude
+
+components:
+
+  - name: tn-parent
+    type: maven-aggregator
+    groupId: com.tn
+    repo: tn-parent
+    notes: Parent POM. Not a code component; sets the build baseline for everything.
+
+  - name: tn-lang
+    type: java-library
+    groupId: com.tn
+    repo: tn-lang
+
+  - name: tn-query
+    type: java-library
+    groupId: com.tn.query
+    repo: tn-query
+    notes: Repo contains a small reactor (tn-query, tn-query-java, tn-query-jdbc, tn-query-jpa).
+
+  - name: tn-cli
+    type: java-cli
+    groupId: com.tn
+    repo: tn-cli
+
+  - name: tn-client-feign
+    type: java-library
+    groupId: com.tn.client
+    repo: tn-client-feign
+
+  - name: tn-temporary-token-service
+    type: java-spring-service
+    groupId: com.tn
+    repo: tn-temporary-token-service
+    notes: Generic OTP-style token generate/verify. No identity concept — reusable as-is.
+
+  - name: tn-temporary-token-service-container
+    type: java-service-container
+    groupId: com.tn
+    repo: tn-temporary-token-service-container
+    notes: >-
+      Builds the deployable image for tn-temporary-token-service. Current, not
+      deprecated (previously miscatalogued as such here — corrected after
+      confirming its pom.xml still targets the active jar). Nothing in tn is in
+      production, so "current" here means "the one to build on", not "serving
+      traffic". Its own
+      tn-parent pin (0.0.01-SNAPSHOT) is very stale — needs bumping whenever
+      it's next touched, same class of issue as the jar repos audited in
+      openspec/changes/add-identity-and-notification-capabilities/standards-audit.md.
+
+  - name: tn-auth-service
+    type: java-spring-service
+    groupId: com.tn
+    repo: tn-auth-service
+    notes: >-
+      JWT session issuance, email-keyed today. Supersedes tn-oauth-service.
+      See catalog.yaml requested_changes (identifier generalisation, requested by
+      okayat-platform). No tn-auth-service-container exists yet — the oauth->auth
+      rename moved the jar repo but never created a replacement for
+      tn-oauth-service-container, so this service cannot be deployed until one is
+      created.
+
+  - name: tn-user-service
+    type: java-spring-service
+    groupId: com.tn
+    repo: tn-user-service
+    notes: >-
+      Profile, email-keyed today. See catalog.yaml requested_changes (identifier
+      generalisation, requested by okayat-platform).
+
+  - name: tn-notification-service
+    type: java-spring-service
+    groupId: com.tn
+    repo: tn-notification-service
+    status: planned
+    notes: Does not exist yet. Requested by okayat-platform / initial-capabilities. See catalog.yaml.
+
+  # Services present but not yet catalogued in detail (type java-spring-service, to
+  # be confirmed):
+  #   tn-service, tn-data-service, tn-data-service-jdbc, tn-data-service-jpa,
+  #   tn-directory-service, tn-element-service, tn-file-service, tn-storage-service
+
+  # Deprecated / superseded (do not build on):
+  #   tn-oauth-service (superseded by tn-auth-service), tn-oauth-service-container
+  #   (pairs with the deprecated jar; tn-auth-service-container should replace it,
+  #   not extend it), tn-service-deprecated, tn-query-mono
