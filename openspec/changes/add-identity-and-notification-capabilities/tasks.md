@@ -1,39 +1,59 @@
 ## 1. tn-parent: new managed dependencies
 
-- [ ] 1.1 Add `net.logstash.logback:logstash-logback-encoder` to `tn-parent`'s
+- [x] 1.1 Add `net.logstash.logback:logstash-logback-encoder` to `tn-parent`'s
       `dependencyManagement`; verify `mvn clean install` on `tn-parent` still
-      succeeds.
-- [ ] 1.2 Add `io.hypersistence:hypersistence-utils-hibernate-71:3.15.5` to
+      succeeds. Pinned `9.0` (Jackson 3, matches this pom's existing Jackson 3
+      move; verified compatible with the pinned `logback-classic:1.5.32`).
+- [x] 1.2 Add `io.hypersistence:hypersistence-utils-hibernate-71:3.15.5` to
       `tn-parent`'s `dependencyManagement` (the `@Tsid` Hibernate annotation —
       see `standards/java/identifiers.md` for why `-71`, not `-72` or `-73`, is
       correct for `tn-parent`'s Hibernate `7.2.7.Final`); verify `mvn clean
       install` still succeeds. (`io.hypersistence:hypersistence-tsid`, the raw
       generator, is already managed — no change needed there.)
-- [ ] 1.3 Bump `springdoc-openapi-starter-webmvc-ui` from `3.0.1` to `3.1.1`
+- [x] 1.3 Bump `springdoc-openapi-starter-webmvc-ui` from `3.0.1` to `3.1.1`
       (design.md Decision 12 / Risk — Jackson 2/3 mismatch on the current pin);
       verify `mvn clean install`
-- [ ] 1.4 Add `org.springframework.boot:spring-boot-testcontainers` (version
+- [x] 1.4 Add `org.springframework.boot:spring-boot-testcontainers` (version
       `${spring-boot.version}`, test scope) and `org.testcontainers:junit-
       jupiter:1.21.4` (test scope) to `dependencyManagement` (design.md
       Decision 14; `org.testcontainers:postgresql` is already managed); verify
       `mvn clean install`
 
+  All four verified with `mvn dependency:resolve` (online, confirms the
+  coordinates exist) and `mvn clean install` (passes) on `tn-parent`, on
+  `feature/add-identity-and-notification-capabilities`, commit `5e917da`.
+  Also found while doing this: `tn-parent`'s `develop` already had the
+  `contracts-producer-java` Maven profile (Spring Cloud Contract Java DSL)
+  and Spring Boot `4.0.5`/Jackson 3 from earlier, unrelated local commits —
+  nothing else to do here for those.
+
 ## 2. Cross-service hygiene (from `standards-audit.md`, before the overhaul itself)
 
-- [ ] 2.1 Add `<relativePath/>` to the `<parent>` block in all three POMs
+- [x] 2.1 Add `<relativePath/>` to the `<parent>` block in all three POMs
       (`standards-audit.md` finding 2); verify a clean checkout (no sibling
       `tn-parent` directory) still resolves the parent
-- [ ] 2.2 Set `groupId` to `com.tn.service` on `tn-auth-service` and
+- [x] 2.2 Set `groupId` to `com.tn.service` on `tn-auth-service` and
       `tn-temporary-token-service`, matching `tn-user-service` and the documented
       family scheme (finding 3); verify `mvn clean install` and update
       `tn-claude/registry.yaml`'s `groupId` entries for both
-- [ ] 2.3 Bump `tn-temporary-token-service`'s parent from `2.2.0-SNAPSHOT` to a
+- [x] 2.3 Bump `tn-temporary-token-service`'s parent from `2.2.0-SNAPSHOT` to a
       released version (finding 1); verify `mvn clean install`
-- [ ] 2.4 Bump `tn-user-service`'s parent from `1.0.1` to the current released
+- [x] 2.4 Bump `tn-user-service`'s parent from `1.0.1` to the current released
       version — as its own reviewable step, separate from the identifier/TSID/
       logging work in §4, given how far behind it is (finding 1, design.md Risk);
       verify `mvn clean install` and that existing tests still pass unchanged
       before any overhaul work starts on top of it
+
+  All four done together: parent bumped to the actual latest release
+  (`2.2.0` — confirmed via `gh release list` against `2.2.0-SNAPSHOT` on
+  `tn-parent`'s own pom, which was misleading), `<relativePath/>` added to
+  all three, `groupId` set to `com.tn.service` on `tn-auth-service` and
+  `tn-temporary-token-service`. `mvn clean install` passed on all three.
+  Also found and fixed while updating `registry.yaml`: `tn-user-service`
+  and the planned `tn-notification-service` entries were *also* stale at
+  `groupId: com.tn`, contradicting their own component's declared/intended
+  `com.tn.service` — fixed all four, not just the two named in this task,
+  since the registry's job is to describe reality accurately.
 - [x] 2.5 Remove `var` from all three services — production code and tests
       (finding 6, design.md Decision 10); verified with
       `grep -rn '\bvar \b' src --include='*.java'` returning nothing in any of the

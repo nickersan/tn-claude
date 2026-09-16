@@ -39,7 +39,7 @@ components:
 
   - name: tn-temporary-token-service
     type: java-spring-service
-    groupId: com.tn
+    groupId: com.tn.service
     repo: tn-temporary-token-service
     notes: Generic OTP-style token generate/verify. No identity concept — reusable as-is.
 
@@ -59,7 +59,7 @@ components:
 
   - name: tn-auth-service
     type: java-spring-service
-    groupId: com.tn
+    groupId: com.tn.service
     repo: tn-auth-service
     notes: >-
       JWT session issuance, email-keyed today. Supersedes tn-oauth-service.
@@ -71,7 +71,7 @@ components:
 
   - name: tn-user-service
     type: java-spring-service
-    groupId: com.tn
+    groupId: com.tn.service
     repo: tn-user-service
     notes: >-
       Profile, email-keyed today. See catalog.yaml requested_changes (identifier
@@ -79,7 +79,7 @@ components:
 
   - name: tn-notification-service
     type: java-spring-service
-    groupId: com.tn
+    groupId: com.tn.service
     repo: tn-notification-service
     status: planned
     notes: Does not exist yet. Requested by okayat-platform / initial-capabilities. See catalog.yaml.
