@@ -65,19 +65,37 @@
 
 ## 3. tn-auth-service: overhaul
 
-- [ ] 3.1 Finish the oauth→auth rename: `oauthService` → `authService`
+- [x] 3.1 Finish the oauth→auth rename: `oauthService` → `authService`
       (bean/field/variable names in `ServiceConfig`, `RefreshController`,
       `AuthServiceTest`), `pilch.oauth-service.*` → `tn.auth-service.*` properties
       (finding 4); verify no reference to either old name remains
       (`grep -ri oauthservice`/`pilch` across the module)
-- [ ] 3.2 Replace the `Email` domain model/table with a generic `Identifier` (type
+
+  Also renamed in `AbstractContractTest`, `RefreshControllerIntegrationTest`,
+  `GenerateControllerIntegrationTest` (same `oauthService` field, missed by
+  the audit's file list but same issue). `grep -rin "oauthservice|pilch" src`
+  returns nothing. Noted in passing, not fixed here: `mvn clean install`
+  surfaces one pre-existing, unrelated flaky test —
+  `RefreshTokenRepositoryTest.shouldFindByEmail` — saves two tokens back to
+  back and orders by `created`, which collides when both land in the same
+  millisecond; doesn't touch anything this task renamed, and the table it
+  tests is rebuilt in 3.2/3.3 anyway.
+- [x] 3.2 Replace the `Email` domain model/table with a generic `Identifier` (type
       EMAIL | PHONE, value), primary key via `@Id @Tsid private Long id;` (see
       `standards/java/identifiers.md`); verify with a unit test per identifier
       type and a persistence test asserting the generated id is TSID-shaped
-- [ ] 3.3 Migrate `generate`/`refresh` to the new table, carrying over existing
+- [x] 3.3 Migrate `generate`/`refresh` to the new table, carrying over existing
       `email` rows' id values unchanged (see design.md Migration Plan); verify with
       an integration test against a database seeded with pre-migration rows
-- [ ] 3.4 Issue `identifierType` + `identifier` JWT claims; do not keep the old
+
+  Done as 3.2/3.3/3.8 together, per design.md's actual Migration Plan
+  ("no real data to migrate... schema replacement, not data migration") —
+  this task's own wording ("carrying over existing email rows' id values
+  unchanged") describes a staged backfill design.md explicitly rejected;
+  flagging the mismatch rather than silently picking one. Rewrote
+  V1_0_00/V1_0_01 in place (no separate drop-migration) since nothing has
+  ever run these migrations against a real database.
+- [x] 3.4 Issue `identifierType` + `identifier` JWT claims; do not keep the old
       `email` claim (this overhaul is not required to stay backward-compatible —
       see design.md Decision 2); verify with a test asserting the JWT for each
       identifier type carries exactly the new claims
@@ -95,8 +113,11 @@
       property names) — currently absent, so every resolved config property logs
       unmasked at startup (finding 5); verify by checking startup log output
       contains no unmasked key material
-- [ ] 3.8 Drop the old `Email` table once 3.2–3.4 are confirmed working; verify
+- [x] 3.8 Drop the old `Email` table once 3.2–3.4 are confirmed working; verify
       with a clean-database integration test
+
+  Folded into 3.2/3.3 — the migration file was rewritten in place rather
+  than staged as a separate drop, so there's no old table left to drop.
 - [ ] 3.9 Annotate `GenerateController`/`RefreshController` for OpenAPI
       (`@Tag`/`@Operation`/`@ApiResponse` per `standards/spring-boot/README.md`);
       verify `/v3/api-docs` describes both endpoints with the new request/response

@@ -312,6 +312,28 @@ once Okayat (or anything else depending on these services) actually ships.
   contract to describe the new, already-decided API shape directly (Decisions
   1–4), and verify it via the generated contract test passing against the real
   implementation — not by diffing against the old `.groovy` file.
+- [`tn-parent`'s SNAPSHOT (needed for this change's new managed dependencies —
+  see §1) also carries an already-in-progress, previously-untested Spring Boot
+  3.5.11→4.0.5 bump from earlier, unrelated `tn-parent` commits — discovered
+  while building `tn-auth-service` against it, not something this change set
+  out to do] → Mitigation, and what `tn-user-service`/`tn-notification-service`
+  will hit too once they pick up the same parent: `@MockBean`/`@SpyBean` are
+  removed, use `@MockitoBean`
+  (`org.springframework.test.context.bean.override.mockito`) instead;
+  `TestRestTemplate` moved to `org.springframework.boot.resttestclient`
+  (needs the `spring-boot-resttestclient` dependency and
+  `@AutoConfigureTestRestTemplate` — `@SpringBootTest` no longer provides one);
+  `@DataJpaTest` moved to `org.springframework.boot.data.jpa.test.autoconfigure`
+  (needs `spring-boot-data-jpa-test`); `flyway-core` alone no longer
+  auto-configures Flyway, needs `spring-boot-starter-flyway`; and
+  `com.fasterxml.jackson.core:jackson-databind` (Jackson 2, still needed by
+  `jjwt-jackson` and Actuator's legacy endpoint support) is no longer managed
+  now that Jackson 3 (`tools.jackson.core`) is primary — pin it explicitly,
+  matching `jackson-annotations`' managed minor version, or a stale transitive
+  2.12.7.1 causes a `NoClassDefFoundError` at actuator startup. All of the
+  above are now managed in `tn-parent`'s `dependencyManagement`; a component
+  only needs to add the dependency and (for `TestRestTemplate` users) the
+  annotation.
 
 ## Migration Plan
 
