@@ -409,6 +409,19 @@
   depends on, does not change. Left unchecked deliberately — this task means
   real provider integration, which has not happened; don't mark it done from
   the stub existing.
+
+  Refined per follow-up user direction: the stubs now log the recipient and
+  message at INFO in the clear (plain SLF4J params, not a structured/masked
+  kv field), specifically so a dispatched code can be read from the logs
+  during manual testing — verified by `StubEmailChannelTest`/
+  `StubSmsChannelTest`. Both are commented as a deliberate, stub-only
+  exception to the masking standard; a real provider implementation must not
+  carry this over. Fixed a real bug found while verifying it: the original
+  `kv("message", message)` in `NotificationSenderImpl` collided with
+  LogstashEncoder's own built-in `message` field, so masking it also
+  clobbered every dispatch log line's own "Notification dispatched" text —
+  renamed to `content` (confirmed by actually encoding a test log event
+  through the real encoder+decorator, not assumed).
 - [x] 5.7 Create `tn-notification-service-container`, following the same pattern
       as 3.13; verify it produces a runnable image
 
