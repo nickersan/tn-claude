@@ -52,10 +52,13 @@ components:
       deprecated (previously miscatalogued as such here — corrected after
       confirming its pom.xml still targets the active jar). Nothing in tn is in
       production, so "current" here means "the one to build on", not "serving
-      traffic". Its own
-      tn-parent pin (0.0.01-SNAPSHOT) is very stale — needs bumping whenever
-      it's next touched, same class of issue as the jar repos audited in
-      openspec/changes/add-identity-and-notification-capabilities/standards-audit.md.
+      traffic". As of add-identity-and-notification-capabilities §6.6: tn-parent
+      pin bumped from the very stale 0.0.01-SNAPSHOT to 2.2.0-SNAPSHOT, h2
+      removed, the jar dependency's groupId fixed (was still com.tn, stale since
+      the com.tn.service fix in §2.2), and the base image bumped to
+      eclipse-temurin:25-jdk-alpine — it had the same Java 21/25 mismatch 3.13
+      found and flagged as unverified-but-likely in tn-auth-service-container;
+      confirmed and fixed here too by actually running the built image.
 
   - name: tn-auth-service
     type: java-spring-service
@@ -103,8 +106,29 @@ components:
     type: java-spring-service
     groupId: com.tn.service
     repo: tn-notification-service
-    status: planned
-    notes: Does not exist yet. Requested by okayat-platform / initial-capabilities. See catalog.yaml.
+    status: active
+    notes: >-
+      Single send(Identifier, message) capability, routed by identifier type
+      to an email or SMS NotificationChannel (POST /v1/actions/send-notification).
+      Stateless — no PostgreSQL/Testcontainers dependency, unlike the other
+      services this change touched. The two channel implementations shipped
+      (StubEmailChannel, StubSmsChannel) are deliberate placeholders: no real
+      email/SMS provider is wired in yet (tasks.md 5.6, still open — the
+      provider choice was deferred by explicit user direction, not decided).
+      Requested by okayat-platform / initial-capabilities. See catalog.yaml.
+
+  - name: tn-notification-service-container
+    type: java-service-container
+    groupId: com.tn
+    repo: tn-notification-service-container
+    notes: >-
+      Builds the deployable image for tn-notification-service — no container
+      repo existed for this service before now (it didn't exist at all before
+      this change). Base image is eclipse-temurin:25-jdk-alpine, following
+      tn-auth-service-container's precedent. Unlike the other two new container
+      repos from this change, this one reaches full Spring Boot startup when
+      run standalone (no missing datasource) — tn-notification-service is
+      stateless.
 
   # Services present but not yet catalogued in detail (type java-spring-service, to
   # be confirmed):

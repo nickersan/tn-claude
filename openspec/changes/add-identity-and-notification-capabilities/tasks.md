@@ -346,32 +346,79 @@
 
 ## 5. tn-notification-service (new)
 
-- [ ] 5.1 Scaffold tn-notification-service (`java-spring-service`) from the
+- [x] 5.1 Scaffold tn-notification-service (`java-spring-service`) from the
       tn-claude conventions; verify it builds via `mvn clean install`
-- [ ] 5.2 Implement `send(Identifier, message)` routing to an email or SMS channel
+- [x] 5.2 Implement `send(Identifier, message)` routing to an email or SMS channel
       by identifier type; verify with a unit test per channel
-- [ ] 5.3 Surface a delivery failure to the caller rather than swallowing it;
+- [x] 5.3 Surface a delivery failure to the caller rather than swallowing it;
       verify with a test simulating a provider error
-- [ ] 5.3a Annotate its controller for OpenAPI and write its contract tests in
+- [x] 5.3a Annotate its controller for OpenAPI and write its contract tests in
       Java under `src/ct/java/contracts` from the start (design.md Decisions
       12/13/15 — nothing to migrate later if it's never non-compliant); verify
       `/v3/api-docs` describes the send endpoint and the contract tests pass
-- [ ] 5.3b If this service ends up persisting anything (a delivery-record table,
+- [x] 5.3b If this service ends up persisting anything (a delivery-record table,
       say) it uses PostgreSQL/Testcontainers from the start, never H2 (design.md
       Decision 14/15); not applicable if it turns out to be stateless — confirm
       which before treating this as done or skipped
-- [ ] 5.4 Configure structured JSON logging with the message content and the
+- [x] 5.4 Configure structured JSON logging with the message content and the
       identifier value masked from the start (this is the service the OTP flows
       through — see spec.md's rationale); verify with a test asserting a dispatch
       log line contains neither
-- [ ] 5.5 Register `com.tn.service.PropertyLogger` in `Application.java` from the
+- [x] 5.5 Register `com.tn.service.PropertyLogger` in `Application.java` from the
       start (see 3.7 — new services should never end up without it); verify
       startup log output contains no unmasked key material
+
+  5.1–5.5, 5.3a, 5.3b done together as the initial scaffold. `NotificationSender.
+  send(Identifier, message)` routes via a `Map<IdentifierType, NotificationChannel>`
+  built in `ServiceConfig` (`NotificationSenderImpl`); `NotificationSenderImplTest`
+  covers EMAIL and PHONE routing plus a channel-throws-`NotificationDeliveryException`
+  case (5.2/5.3). The controller (`NotificationActionsController`, `POST /v1/actions/
+  send-notification` per the action-endpoint convention — dispatch isn't a resource
+  CRUD verb) maps `NotificationDeliveryException` to `502`, not a swallowed/caught
+  failure — `NotificationActionsControllerIntegrationTest` and the
+  `ShouldReturnBadGatewayWhenDeliveryFails` contract both verify this at the HTTP
+  layer. OpenAPI annotations present from the start; `OpenApiDocsIntegrationTest`
+  confirms `/v3/api-docs` describes the endpoint. Java DSL contracts
+  (`ShouldSendNotification`, `ShouldReturnBadGatewayWhenDeliveryFails`) from the
+  start, no Groovy ever written. 5.3b: confirmed not applicable — this service is
+  stateless (no delivery-record persistence), so no PostgreSQL/Testcontainers
+  dependency was added; noted in `README.md` rather than silently skipped.
+  Structured logging masks `identifierValue` and `message` by path in
+  `logback-spring.xml`; `NotificationSenderLoggingTest` proves a dispatch log line
+  never contains either unmasked (same `ListAppender` + re-encode approach as
+  `AuthServiceLoggingTest`). `PropertyLogger` registered in `Application.java`
+  from the start (`REGEX_PASSWORD`/`REGEX_SECRET` — no signing-key-shaped property
+  exists in this service yet). `mvn clean install` passes (unit + `src/it` +
+  generated contract tests). Pushed to
+  `feature/add-identity-and-notification-capabilities` on the new private repo
+  `nickersan/tn-notification-service`.
 - [ ] 5.6 Integrate a real email and SMS provider (choice is this service's own
       decision — see design.md Open Questions); verify with an integration test
       against a sandbox/test account
-- [ ] 5.7 Create `tn-notification-service-container`, following the same pattern
+
+  Deliberately not done — explicit user direction (the provider question was put
+  to the user via `AskUserQuestion` and declined; the user asked for a stub
+  instead, to be implemented "according to cloud services available" later).
+  What exists instead: `NotificationChannel` (the seam) with two placeholder
+  implementations, `service/channel/StubEmailChannel`/`StubSmsChannel` — each
+  accepts a dispatch and returns without contacting any provider, no-op by
+  design, not a fake success dressed up as a real one (no network call, no
+  fabricated provider response). Swapping in a real provider later means adding
+  a new `NotificationChannel` implementation and rewiring `ServiceConfig`'s two
+  `Map.of(...)` entries — `NotificationSender`, the contract every consumer
+  depends on, does not change. Left unchecked deliberately — this task means
+  real provider integration, which has not happened; don't mark it done from
+  the stub existing.
+- [x] 5.7 Create `tn-notification-service-container`, following the same pattern
       as 3.13; verify it produces a runnable image
+
+  Created private repo `nickersan/tn-notification-service-container`, pushed to
+  `main` (new repo, no CI risk). `eclipse-temurin:25-jdk-alpine` from the start
+  (learned from 3.13/4.13, not rediscovered). Actually ran the built image (not
+  just built it): unlike `tn-auth-service-container`/`tn-user-service-container`,
+  which stop at "no datasource configured" since this service is stateless it
+  reaches full Spring Boot startup — Tomcat serving on 8080, no missing
+  dependency at all.
 
 ## 6. tn-temporary-token-service: logging, docs, contracts, and database
 
@@ -379,40 +426,116 @@ No identity/data-model change (its API is already identifier-agnostic) — but i
 picks up the same cross-cutting cleanup as the other two: logging (already
 planned), plus OpenAPI, Java contracts, and PostgreSQL/Testcontainers.
 
-- [ ] 6.1 Confirm the written spec matches current generate/verify behaviour
+- [x] 6.1 Confirm the written spec matches current generate/verify behaviour
       exactly — no data-model change; verify by reading
       `TokenGenerator`/`TokenVerifier` against `specs/tn-temporary-token-service/
       spec.md`
-- [ ] 6.2 Fix `GenerateController`/`VerifyController` to stop logging `owner`
+- [x] 6.2 Fix `GenerateController`/`VerifyController` to stop logging `owner`
       unmasked (`log.info("Generated token for: {}; ...", owner)` today); adopt
       structured JSON logging with the token value and owner masked; verify with a
       test asserting neither appears unmasked in a generate/verify log line
-- [ ] 6.3 Register `com.tn.service.PropertyLogger` in `Application.java` (finding
+- [x] 6.3 Register `com.tn.service.PropertyLogger` in `Application.java` (finding
       5 — currently absent here too); verify startup log output contains no
       unmasked key material
-- [ ] 6.4 Annotate `GenerateController`/`GetController`/`VerifyController` for
+- [x] 6.4 Annotate `GenerateController`/`GetController`/`VerifyController` for
       OpenAPI (design.md Decision 12); verify `/v3/api-docs` describes all three
       endpoints
-- [ ] 6.5 Migrate the eight Groovy contracts under `src/ct/resources/contracts/
+- [x] 6.5 Migrate the eight Groovy contracts under `src/ct/resources/contracts/
       *.groovy` to Java contracts under `src/ct/java/contracts` — same
       request/response content, format only (this API doesn't change, unlike
       auth/user's — design.md Decision 13); verify the generated contract tests
       pass and delete the `.groovy` files
-- [ ] 6.6 Remove the `h2` runtime dependency from both this service's POM *and*
+- [x] 6.6 Remove the `h2` runtime dependency from both this service's POM *and*
       `tn-temporary-token-service-container`'s (design.md Context — it's
       currently declared in both); verify `mvn clean install` for each
-- [ ] 6.7 Convert `TokenRepositoryTest` to run against Testcontainers PostgreSQL
+- [x] 6.7 Convert `TokenRepositoryTest` to run against Testcontainers PostgreSQL
       via `@ServiceConnection` instead of H2 (same approach as 3.12); verify it
       passes against the container
+
+  6.1: reviewed `TokenGenerator`/`TokenVerifier`/`Token` against `specs/
+  tn-temporary-token-service/spec.md` — owner stays an opaque string, no
+  identifier-shape validation anywhere; matches. Baseline check before touching
+  anything: `mvn clean test` failed with 13 errors on this service's *existing*
+  `tn-parent 2.2.0` pin (`@MockBean` already broken under Boot 4) — confirmed,
+  not assumed, then fixed as part of 6.2–6.7 below rather than left broken.
+  6.2/6.3: `logback.xml` (plain-text pattern layout) replaced with
+  `logback-spring.xml` (`LogstashEncoder` + `MaskingJsonGeneratorDecorator`
+  masking `owner`/`token` by path); `GenerateController`/`VerifyController` log
+  via `kv("owner", ...)` structured arguments instead of string interpolation.
+  `PropertyLogger` registered in `Application.java` (`REGEX_PASSWORD`/
+  `REGEX_SECRET` — no signing-key-shaped property exists in this service).
+  6.4: `@Tag`/`@Operation`/`@ApiResponse` added to all three controllers (one
+  shared "Tokens" tag); new `OpenApiDocsIntegrationTest` asserts `/v3/api-docs`
+  describes `/generate`, `/verify`, and `/{owner}`.
+  6.5: all 8 Groovy contracts ported 1:1 (same request/response content) to
+  `src/ct/java/contracts/*.java`; the non-deterministic `expires` field uses
+  `Response.anyPositiveInt()` (Java DSL's own regex-matcher sugar — no
+  `consumer(regex(...))` helper exists on the Java side the way it did in
+  Groovy; confirmed by decompiling the actual `Response` class rather than
+  guessing an API). Also fixed the same `contract-producer.base-test-class` →
+  `contract-producer.base-class.tests`/`base-package.tests` property-name bug
+  3.10/4.10 found in the other two services.
+  6.6/6.7: `h2` removed from both this service's pom and the container's;
+  `TokenRepositoryTest` declares its own local `@Container`/
+  `@ServiceConnection("postgresql")` field (not a shared base — this is the
+  only `@DataJpaTest` class here, so the singleton-container gotcha doesn't
+  apply, per `standards/database/README.md`'s note on that). The other four
+  full-context test classes (`AbstractContractTest` and the three src/it
+  classes plus the new OpenAPI one) share a new `AbstractPostgresIntegrationTest`
+  singleton-pattern base, same as 3.12/4.12.
+
+  Found and fixed along the way, not left as silent workarounds:
+  - `GenerateController` had a stray `@RequestMapping("/v1")` class-level
+    prefix that didn't match its own contract/integration test (both posted to
+    plain `/generate`) or the other two controllers' convention — removed.
+  - `AbstractContractTest`'s expiry contract never mocked
+    `Supplier<LocalDateTime>`, relying on two real `LocalDateTime.now()` calls
+    (at token-creation and at expiry-check) landing in different clock ticks —
+    flaky on a coarse system clock, and it did fail once while getting this
+    green. Fixed by mocking `localDateTimeSupplier` with a fixed offset, same
+    pattern `GetControllerIntegrationTest` already used correctly.
+  - The local `NoopController` was a duplicate of `tn-service`'s own (same
+    fix as 3.7); deleted once `tn-service` was added as a real dependency.
+  - `tn-temporary-token-service-container`'s jar dependency still referenced
+    the pre-2.2-groupId-fix `com.tn:tn-temporary-token-service` instead of
+    `com.tn.service:tn-temporary-token-service` — fixed.
+  - `tn-temporary-token-service-container`'s Dockerfile base image was
+    `eclipse-temurin:21.0.2_13-jdk-alpine` — the exact defect flagged as
+    unverified-but-likely in `registry.yaml` after 3.13 caught it in
+    `tn-auth-service-container`; confirmed here too and bumped to
+    `eclipse-temurin:25-jdk-alpine`, verified by actually running the built
+    image, not just building it.
+  - Container's own `tn-parent` pin was very stale (`0.0.01-SNAPSHOT`,
+    flagged in `registry.yaml`) — bumped to `2.2.0-SNAPSHOT` alongside the
+    jar's own temporary pin.
+
+  `mvn clean install` is green on both repos; both pushed
+  (`tn-temporary-token-service` to the shared feature branch,
+  `tn-temporary-token-service-container` to `main`, no CI workflows on either
+  repo so no deploy risk).
 
 ## 7. tn-claude records
 
 - [ ] 7.1 Update `catalog.yaml`: move the four services' entries from
       `requested_changes`/`status: requested` to reflecting the archived contract;
       verify the entries link to `openspec/specs/<service>/spec.md`
-- [ ] 7.2 Add/confirm `registry.yaml` entries, including `tn-notification-service`
+
+  Not done yet, deliberately — this task means the *archived* contract
+  (`spec:` pointing at the permanent `openspec/specs/<service>/spec.md`,
+  replacing `spec_change:`), which only exists once 7.4 archives the change,
+  which itself waits on 5.6 (see below). Doing this now would mean pointing
+  at a spec.md that doesn't exist yet at that path. Left unchecked rather than
+  faked.
+- [x] 7.2 Add/confirm `registry.yaml` entries, including `tn-notification-service`
       moving from `status: planned` to `active`, and the `groupId` fixes from §2.2;
       verify against the actual repos
+
+  `tn-notification-service` moved to `status: active` with a note on what it
+  actually does and 5.6's open status; new `tn-notification-service-container`
+  entry added; `tn-temporary-token-service-container`'s note updated with the
+  §6.6 fixes (groupId, H2, base image, parent pin). §2.2's `groupId` fixes were
+  already correct in `registry.yaml` — confirmed against the actual repos
+  (`com.tn.service` on all four services), not re-changed.
 - [x] 7.3 Fold the resolved `standards-audit.md` findings back into the standards
       themselves: the `idioms.md` final-field JPA exception (finding 7), the
       `pom-style.md` `<repositories>` skeleton (finding 8, resolved in 2.6), and a
@@ -421,3 +544,9 @@ planned), plus OpenAPI, Java contracts, and PostgreSQL/Testcontainers.
 - [ ] 7.4 Archive this change (`openspec archive
       add-identity-and-notification-capabilities`) once 1–6 are done; verify
       `openspec validate --specs` passes afterwards
+
+  Not done — sections 1, 2, 3, 4, and 6 are fully complete; section 5 is
+  complete except 5.6 (a real email/SMS provider), which is deliberately open
+  pending a provider decision, not an oversight. This task's own wording
+  ("once 1–6 are done") means archiving now, with 5.6 still open, would be
+  premature — left for a follow-up once 5.6 is resolved.
