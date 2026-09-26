@@ -272,8 +272,9 @@ lookup, no identifier or account persistence anywhere in this service, and no
 caller-supplied claim of any kind. `refresh(token)` re-mints an access token
 carrying the *same* subject as the original session (read back from the
 presented, verified refresh token's own `sub`). This also removes the
-`IdentifierType` enum and the `/v1/link` endpoint from `tn-auth-service`
-entirely — see Decision 19.
+`IdentifierType` enum and any identifier-linking endpoint from
+`tn-auth-service` entirely — that capability moves to `tn-user-service`,
+see Decision 19.
 
 **18. Identifier storage and resolution move to `tn-user-service`; its `User`
 gets `email`/`phone` as individually unique, nullable columns, and its own id
@@ -292,20 +293,30 @@ own words: "let's drop WhatsApp for now" — so only `email`/`phone` exist as
 of this pass; a third column is a later, separate change if/when needed, not
 a placeholder reserved here.
 
-**19. "Link an additional identifier to my account" moves to
-`tn-user-service`, against the `User` table — the same three outcomes
-originally drafted against `tn-auth-service`'s `Account`, now against
-`tn-user-service`'s `User`.** Reject a value already belonging to a
-*different* user; no-op if the caller's own user already holds that exact
-value in that type's slot; reject a *different* value into a slot the
-caller's user already has filled (this last case exists because the flat
-shape gives each type exactly one slot — "link a different email" and
-"change my email" are the same request, and this capability is deliberately
-not "change," a distinct, not-yet-specified capability). `tn-user-service`
-does not itself verify a new identifier belongs to the caller before linking
-it — that verification is `tn-temporary-token-service`'s OTP flow, composed
-by whichever caller orchestrates it (`okayat-bff`), same trust boundary this
-layer already uses for every other opaque-caller-id reference.
+**19. Creating and updating a user is "pass the JSON representation of the
+user, minus its id" — not a `(type, value)`-discriminated create, and not a
+separate link action.** Reverses this section's own first draft, which added
+a dedicated link capability mirroring `tn-auth-service`'s (never-shipped)
+account-link design — a native conditional `UPDATE` enforcing three outcomes
+(reject a value belonging to a different user; no-op if already the caller's
+own value; reject a different value into an already-filled slot). Direct
+requester correction: "users should be created and updated by passing the
+JSON that represents that user; in both cases this will be the user minus
+their id, which in the case of an update is passed via the path." `POST
+/v1/users` and `PUT /v1/users/{id}` both take the same shape (`email`,
+`phone`, `fullName`, `preferredName`); update no longer treats the identifier
+as immutable, so linking a second identifier to an existing user — or
+changing one — is just a PUT with the desired fields set. A plain JPA
+`save()` plus the unique-constraint-to-409 translation already in place for
+creation (`DataIntegrityViolationException` → `409`) handles "someone else
+already has this value," with no bespoke link logic needed. The one rule
+still enforced: a user must have at least one of `email`/`phone` (a new
+`MissingIdentifierException` → `400`), checked on both create and update,
+since Bean Validation has no declarative "at least one of these two fields"
+constraint. `find-or-create` (Decision 18, used by login composition) is
+unaffected by this reversal — it's a lookup by one already-known identifier
+value, a different operation from editing a user's own profile, and keeps
+its `(type, value)` shape and native upsert.
 
 **20. Login composes `tn-user-service` and `tn-auth-service`, in that
 order — `tn-auth-service` never resolves an identifier itself.** Direct

@@ -249,6 +249,27 @@ the conflict re-fetch need to be arranged so the retry isn't silently doomed by
 the same transaction. The native upsert avoids that wrinkle entirely, which is
 why it's the preferred shape.
 
+**Naming the fragment interface: `<Entity>RepositoryExtended`, not
+`<Entity>RepositoryCustom`.** When a Spring Data repository needs hand-written
+methods alongside its generated ones (a native upsert like the above, a bulk
+op, anything `CrudRepository`/`tn-query`'s queryable base can't derive), the
+three-piece shape is:
+
+- `<Entity>Repository extends CrudRepository<Entity, Id>, <Entity>RepositoryExtended`
+  — the public interface callers inject.
+- `<Entity>RepositoryExtended` — a plain interface declaring just the
+  hand-written methods.
+- `<Entity>RepositoryImpl` — implements `<Entity>RepositoryExtended`; Spring
+  Data finds it by the `Impl` suffix convention and composes it into
+  `<Entity>Repository`'s proxy automatically.
+
+`Extended` names what the interface *is* (more methods on top of the
+generated set) rather than how it got there (`Custom` describes the
+mechanism, not the interface's role, and reads the same whether the
+extension is one bespoke method or ten). Applies wherever this repository-
+fragment pattern is used, not just `tn-user-service`'s `UserRepository`
+(the first place it's used in this layer).
+
 ## Still placeholder
 
 - Application / configuration class layout, `@ConfigurationProperties` usage.

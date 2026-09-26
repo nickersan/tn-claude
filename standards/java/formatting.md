@@ -123,6 +123,30 @@ record GenerateRequest(
 Not `) {}` on one line — the empty body still gets its own opening/closing
 brace line, same as every other Allman-braced construct on this page.
 
+**Applies equally to plain methods, not just constructors and records.** The
+title says "methods and constructors" for a reason — an ordinary method
+whose parameter list breaks onto multiple lines follows the exact same
+per-parameter, per-annotation layout. In particular, when one parameter
+carries more than one annotation, each annotation gets its own line above
+that parameter, same as `Page`'s `@Nonnull` / `@JsonProperty("items")`
+above — this holds even though the method's *other* parameters have no
+annotation at all and so don't themselves force a break:
+
+```java
+PagedModel<User> list(
+  @Parameter(description = "tn-query filter expression, validated against this entity's fields")
+  @RequestParam(required = false)
+  String q,
+  Pageable pageable
+);
+```
+
+A parameter with a single, short annotation and a parameter list that
+already fits on one line stays inline — `get(@PathVariable Long id)` needs
+no breaking. The trigger is the same as everywhere else on this page: the
+line doesn't comfortably fit, or (for constructors/records specifically)
+any component carries an annotation at all.
+
 ## Fluent / stream chains
 
 Break before each `.` in a chain, indent the continuation +2:

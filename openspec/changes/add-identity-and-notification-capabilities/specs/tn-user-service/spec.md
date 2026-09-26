@@ -59,44 +59,55 @@ this guarantee SHALL hold across instances, not just within one process).
 - **THEN** exactly one user is created, and every caller receives that same
   user
 
-### Requirement: An existing user can link an additional identifier
-The system SHALL allow a further identifier to be linked to an existing user,
-but only into that identifier type's empty slot. The system does not itself
-verify that the new identifier belongs to that user — the caller is trusted to
-have already verified it (e.g. via `tn-temporary-token-service`'s OTP flow)
-before requesting the link.
+### Requirement: A user is created or updated by supplying its full representation
+The system SHALL accept the same shape — email, phone, and name fields,
+without an id — for both creating a new user and replacing an existing one's
+profile. Updating a user's profile SHALL be permitted to change its email
+and/or phone, including adding a second identifier alongside an existing one;
+the system does not treat an identifier as immutable once set. The system
+does not itself verify that a supplied identifier belongs to the caller — the
+caller is trusted to have already verified it (e.g. via
+`tn-temporary-token-service`'s OTP flow) before requesting the create or
+update.
 
-#### Scenario: Linking a new identifier into an empty slot
-- **WHEN** a caller requests to link an identifier of a type the user does not
-  yet have linked, and that value does not belong to any other user
-- **THEN** the system links that identifier to the user, and a subsequent
-  find-or-create with it resolves to the same user
+#### Scenario: Adding a second identifier via update
+- **WHEN** a caller updates an existing user, supplying both the identifier it
+  already has and a second identifier of the other type
+- **THEN** the system stores both, and either can subsequently be used to find
+  that same user
 
-#### Scenario: Identifier value already belongs to a different user
-- **WHEN** a caller requests to link an identifier value that already belongs
-  to a different user
+#### Scenario: Changing an existing identifier via update
+- **WHEN** a caller updates an existing user, supplying a different value for
+  an identifier type it already has
+- **THEN** the system replaces the existing value with the supplied one
+
+#### Scenario: A value already belonging to a different user is rejected
+- **WHEN** a caller creates or updates a user supplying an email address or
+  phone number that already belongs to a different user
 - **THEN** the system rejects the request and does not change either user's
-  linked identifiers
+  stored identifiers
 
-#### Scenario: Identifier already linked to the same user
-- **WHEN** a caller requests to link an identifier value the user already has
-  linked for that type
-- **THEN** the system leaves the user's linked identifiers unchanged and does
-  not error
+### Requirement: A user must have at least one identifier
+The system SHALL reject creating or updating a user such that it would have
+neither an email address nor a phone number.
 
-#### Scenario: Type slot already holds a different value
-- **WHEN** a caller requests to link an identifier of a type the user already
-  has linked, and the value differs from the one already linked
-- **THEN** the system rejects the request and leaves the user's existing
-  identifier of that type unchanged — changing an identifier is a distinct,
-  not-yet-specified capability, not what linking provides
+#### Scenario: Creating a user without any identifier
+- **WHEN** a caller creates a user supplying neither an email address nor a
+  phone number
+- **THEN** the system rejects the request
+
+#### Scenario: Updating a user to remove its only identifier
+- **WHEN** a caller updates a user, supplying neither an email address nor a
+  phone number where the user previously had at least one
+- **THEN** the system rejects the request and leaves the user's stored
+  identifiers unchanged
 
 ### Requirement: This service does not issue or verify tokens
 The system SHALL NOT issue, refresh, or verify a session token — that is
 `tn-auth-service`'s responsibility, not this service's.
 
 #### Scenario: Profile operations never return a token
-- **WHEN** a caller creates, reads, updates, or links an identifier to a user
+- **WHEN** a caller creates, reads, or updates a user
 - **THEN** the response contains profile data only, never a token
 
 ### Requirement: User records use TSID primary keys
@@ -110,11 +121,11 @@ subject id passed to `tn-auth-service.generate()`.
 - **THEN** the record's primary key is a TSID value, not a sequence-issued one
 
 ### Requirement: Structured, masked logging
-The system SHALL log profile creation, lookup, and identifier-linking events
-as structured (JSON) log entries, per `tn-claude/standards/logging/README.md`,
+The system SHALL log profile creation, lookup, and update events as
+structured (JSON) log entries, per `tn-claude/standards/logging/README.md`,
 and SHALL NOT log an email address or phone number value unmasked.
 
 #### Scenario: Profile events are logged without leaking an identifier value
-- **WHEN** the system creates, finds, or links an identifier to a user
+- **WHEN** the system creates, finds, or updates a user
 - **THEN** it emits a structured log entry describing the event, and that
   entry does not contain the unmasked email address or phone number value

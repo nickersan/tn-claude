@@ -558,14 +558,12 @@ planned), plus OpenAPI, Java contracts, and PostgreSQL/Testcontainers.
       add-identity-and-notification-capabilities`) once 1–6 and 8 are done;
       verify `openspec validate --specs` passes afterwards
 
-  Not done — sections 1, 2, 3, 4, and 6 are fully complete; section 5 is
-  complete except 5.6 (a real email/SMS provider), which is deliberately open
-  pending a provider decision, not an oversight. Section 8 (identity ownership
-  moves to `tn-user-service`; `tn-auth-service` becomes a generic token/claims
-  service; design.md Decisions 17-22) was added after this task was last
-  updated — also not done. This task's own wording means archiving now, with
-  5.6 and all of §8 still open, would be premature — left for a follow-up
-  once both are resolved.
+  Not done — sections 1, 2, 3, 4, 6, and 8 are now fully complete; section 5
+  is complete except 5.6 (a real email/SMS provider), which is deliberately
+  open pending a provider decision, not an oversight. This task's own wording
+  means archiving now, with 5.6 still open, would be premature — left for a
+  follow-up once a provider is chosen, unless the requester decides to archive
+  with 5.6 left as a known gap for a later change.
 
 ## 8. Generic token service + identity ownership in tn-user-service (design.md Decisions 17-22)
 
@@ -626,39 +624,84 @@ split now captured in `standards/spring-boot/README.md` (design.md Decision
   integration tests, 18 tests) passes clean; `/v3/api-docs` still describes
   both endpoints correctly with the annotations living on the interfaces, not
   the controller classes — confirms the pattern works as designed.
-- [ ] 8.4 Rework `tn-user-service`'s `User` from a single `(identifierType,
+- [x] 8.4 Rework `tn-user-service`'s `User` from a single `(identifierType,
       identifierValue)` pair (built in 4.1) to two individually-unique,
       nullable columns, `email` and `phone` — at most one of each per user
       (design.md Decision 18); verify with tests covering find-or-create by
       either identifier type, and that creating a user with an email already
       used by another user is rejected
-- [ ] 8.5 Implement "link an additional identifier to an existing user": given
-      a user id and a `(type, value)`, set the matching column if it is
-      currently unset, race-safe against a concurrent link attempt for the
-      same value (same upsert-or-translated-constraint-violation discipline
-      as the existing find-or-create); reject if that value already belongs
-      to a different user; no-op if the caller's own user already holds that
-      exact value in that column; reject if that column already holds a
-      *different* value on the caller's own user (design.md Decision 19);
-      verify with tests covering all four outcomes, plus a concurrency test
-      for two simultaneous first-links of the same new value by different
-      users
-- [ ] 8.6 Restore masked logging for `tn-user-service`'s identifier values
+- [x] 8.5 Creating and updating a user takes the same shape — email, phone,
+      full name, preferred name, no id — for both `POST /v1/users` and
+      `PUT /v1/users/{id}`; update no longer treats the identifier as
+      immutable, so adding a second identifier or changing one is just a PUT
+      with the desired fields set; reject (400) if the result would have
+      neither email nor phone; a value already belonging to a different user
+      still surfaces as a 409 via the existing `DataIntegrityViolationException`
+      handling, no bespoke logic needed (design.md Decision 19 — reverses this
+      task's first draft, a dedicated link action with a native conditional
+      `UPDATE`); verify with tests covering: adding a second identifier via
+      update, changing an existing one via update, rejecting a value taken by
+      another user, and rejecting a create/update that would leave neither
+      identifier set
+
+  Done together with 8.4 (`tn-user-service` commit `1f913f5` on
+  `feature/add-identity-and-notification-capabilities`) — reworked mid-pass
+  per direct requester correction after an initial link-endpoint
+  implementation was built, tested, and then explicitly rejected in favour of
+  this simpler shape; the link endpoint, its native-upsert repository method,
+  and its tests were removed outright, not left disabled. `MissingIdentifierException`
+  (400) added for the "neither identifier" case, checked on both create and
+  update. `UserResponse` also removed — `User`'s own `@JsonProperty`
+  annotations already make it directly serializable, so the separate DTO was
+  redundant once its shape matched `User`'s exactly.
+- [x] 8.6 Restore masked logging for `tn-user-service`'s identifier values
       (email/phone are stored again, so there is something to mask — design.md
-      Decision 18's Risk note); verify with a test asserting a profile or
-      link-event log line does not contain an unmasked identifier value
-- [ ] 8.7 Restructure `tn-user-service`'s controllers to the same
+      Decision 18's Risk note); verify with a test asserting a profile
+      creation/find-or-create log line does not contain an unmasked
+      identifier value
+
+  Done — `logback-spring.xml` masks `email`/`phone` (replacing the old
+  `identifierValue` path); `UserActionsControllerLoggingTest` (new, mirrors
+  `tn-auth-service`'s `AuthServiceLoggingTest` pattern) asserts a
+  find-or-create log line never contains the unmasked value.
+- [x] 8.7 Restructure `tn-user-service`'s controllers to the same
       `api`-interface / `controllers`-implementation split as 8.3; verify
       `/v3/api-docs` still describes every endpoint correctly and the
       generated contract tests still pass
-- [ ] 8.8 Update `tn-user-service`'s Java DSL contract tests and OpenAPI docs
-      to describe the new shapes (the two-column identifier shape and the new
-      link endpoint — `tn-auth-service`'s own contracts/docs were already
-      updated as part of 8.1/8.3); verify the generated contract tests pass
-      against the reworked implementation, not the pre-rework `.java`
-      contract files left unchanged
-- [ ] 8.9 Re-run the existing find-or-create concurrency test
+
+  Done — `UserApi`/`UserActionsApi` (routing + OpenAPI annotations, plus the
+  request/response record types) in `api`; `UserController`/
+  `UserActionsController` (bare `@RestController`) in a new `controllers`
+  package. Custom repository fragment interface renamed
+  `UserRepositoryCustom` → `UserRepositoryExtended` along the way, per the
+  naming convention now captured in `standards/spring-boot/README.md`
+  alongside the find-or-create pattern it applies to.
+- [x] 8.8 Update `tn-user-service`'s Java DSL contract tests and OpenAPI docs
+      to describe the new shapes (`tn-auth-service`'s own contracts/docs were
+      already updated as part of 8.1/8.3); verify the generated contract
+      tests pass against the reworked implementation, not the pre-rework
+      `.java` contract files left unchanged
+
+  Done — all six contracts (`ShouldCreateUser`, `ShouldFindOrCreateUser`,
+  `ShouldGetUser`, `ShouldListUsers`, `ShouldReturnBadRequestForUserWithoutIdentifier`,
+  `ShouldReturnNotFoundForUnknownUser`) describe the `email`/`phone` shape;
+  the draft `ShouldLinkIdentifier` contract written for the since-reversed
+  link endpoint was deleted, not left orphaned.
+- [x] 8.9 Re-run the existing find-or-create concurrency test
       (`UserRepositoryFindOrCreateConcurrencyIntegrationTest`, adapted to the
-      two-column shape) and add one for 8.5's identifier-link; verify the
-      race-safety claim is proven again, not assumed to still hold because the
-      SQL pattern looks the same
+      two-column shape); verify the race-safety claim is proven again, not
+      assumed to still hold because the SQL pattern looks the same
+
+  Done — also surfaced a real bug while doing this: `UserRepositoryImpl`'s
+  native-query fragment methods had no transaction boundary from the composed
+  `tn-query` repository proxy (`AbstractQueryableRepository`-based
+  repositories, unlike a stock `CrudRepository`, don't apply one to custom
+  fragment methods automatically) — first seen as a stale-cache read
+  (`findById` after a native update returning an L1-cached, pre-update
+  entity), then as an outright "no active transaction" failure once the
+  concurrency test exercised it without the ambient transaction a
+  `@DataJpaTest`-style test happens to provide. Fixed with explicit
+  `@Transactional` plus an `entityManager().clear()` after the native DML on
+  `findOrCreate`. A draft concurrency test for the since-reversed link
+  endpoint was written and then deleted along with the endpoint itself, not
+  left in place.
