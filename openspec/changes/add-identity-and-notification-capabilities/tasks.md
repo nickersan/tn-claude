@@ -561,38 +561,50 @@ planned), plus OpenAPI, Java contracts, and PostgreSQL/Testcontainers.
   Not done — sections 1, 2, 3, 4, and 6 are fully complete; section 5 is
   complete except 5.6 (a real email/SMS provider), which is deliberately open
   pending a provider decision, not an oversight. Section 8 (multi-identifier
-  accounts, design.md Decisions 17-22) was added after this task was last
+  accounts, design.md Decisions 17-23) was added after this task was last
   updated — also not done. This task's own wording means archiving now, with
   5.6 and all of §8 still open, would be premature — left for a follow-up
   once both are resolved.
 
-## 8. Multi-identifier accounts (added after initial build — design.md Decisions 17-22)
+## 8. Multi-identifier accounts (added after initial build — design.md Decisions 17-23)
 
-Everything below modifies already-built, tested, committed code from §§1-6,
-not green-field work — baseline-check existing tests before touching them (as
-§6.1 did), and expect to rewrite contracts describing the old identifier-is-
-the-account shape rather than extend them (see the Risk design.md records for
-this section).
+Everything below modifies already-built, tested, committed code from §§1-6 —
+including task 3.2/3.3's original `identifier` table, not just green-field
+Account work (design.md Decision 23 replaces that table, not just the
+not-yet-built account-linking design that was going to sit alongside it).
+Baseline-check existing tests before touching them (as §6.1 did), and expect
+to rewrite contracts describing either the old email-only or the old
+identifier-table shape rather than extend them (see the Risk design.md
+records for this section).
 
-- [ ] 8.1 Add an `account` table (TSID primary key, no other columns) to
-      `tn-auth-service` and an `account_id` FK on `identifier`; update
-      `generate(type, value)` to find-or-create the identifier as before, then
-      resolve or create its linked account, and mint the JWT with `sub` =
-      account id, not identifier id (design.md Decisions 17-18); verify with a
-      test that two different identifiers linked to the same account both
-      produce a session with the same subject, and that a brand-new identifier
-      produces a session for a brand-new account
-- [ ] 8.2 Add `WHATSAPP` to the shared `IdentifierType` enum (`tn-auth-service`,
+- [ ] 8.1 Replace `tn-auth-service`'s `identifier` table (built in 3.2/3.3)
+      with an `account` table carrying `email`, `phone`, and `whatsapp` as
+      individually-`UNIQUE`, nullable columns — no separate identifier
+      entity survives (design.md Decision 23); update `generate(type, value)`
+      to resolve `type` to its column, look up an account by that column's
+      value, and mint the JWT with `sub` = account id; on no match, create a
+      new account with that column set, via a race-safe upsert (`INSERT ...
+      ON CONFLICT (<column>) DO UPDATE ... RETURNING *`, one variant per
+      column, same discipline as `tn-user-service`'s existing find-or-create)
+      (design.md Decisions 17-18, 23); verify with tests that signing in with
+      a value already held by an account returns a session for it without
+      duplicating anything, that a brand-new value creates a new account, and
+      a concurrency test firing simultaneous first-sign-ins for the same new
+      value asserts exactly one account results
+- [ ] 8.2 Add `WHATSAPP` as the third column (`whatsapp`) on `account` and the
+      third value of the shared `IdentifierType` enum (`tn-auth-service`,
       `tn-user-service`); verify a token pair can be issued for a WhatsApp
-      identifier the same way as email/phone (design.md Decision 22)
+      identifier the same way as email/phone (design.md Decisions 22-23)
 - [ ] 8.3 Implement "link an additional identifier to my account": given an
-      authenticated caller and a `(type, value)`, link it to the caller's
-      account, race-safe against a concurrent link attempt for the same
-      identifier (same discipline as every other find-or-create in this
-      layer); reject if already linked to a different account, no-op if
-      already linked to the caller's own (design.md Decision 19); verify with
-      tests covering all three outcomes, plus a concurrency test for two
-      simultaneous link attempts on the same new identifier
+      authenticated caller and a `(type, value)`, set the matching column on
+      the caller's account if it is currently unset, race-safe against a
+      concurrent link attempt for the same value (same upsert discipline as
+      8.1); reject if that value already belongs to a different account;
+      no-op if the caller's own account already holds that exact value in
+      that column; reject if that column already holds a *different* value on
+      the caller's own account (design.md Decision 19); verify with tests
+      covering all four outcomes, plus a concurrency test for two simultaneous
+      first-links of the same new value by different accounts
 - [ ] 8.4 Rekey `tn-user-service`'s `User` from `(identifierType,
       identifierValue)` to a single unique `accountId`; remove the identifier
       columns entirely — this service no longer stores or validates an

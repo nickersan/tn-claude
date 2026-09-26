@@ -12,23 +12,22 @@ An account is the stable anchor identity; one or more verified identifiers
 
 ### Requirement: Issue a session for a verified identifier, resolving to its linked account
 The system SHALL mint a JWT access token and a JWT refresh token for a given
-identifier (email address, phone number, or WhatsApp number), creating a record
-for that identifier — and a new account for it to link to — on first use. The
-issued token's subject SHALL identify the account, not the identifier record.
+identifier (email address, phone number, or WhatsApp number), recording that
+value on a new account on first use. The issued token's subject SHALL identify
+the account, not the identifier value itself.
 
 #### Scenario: First session for a new identifier
-- **WHEN** a caller requests a token pair for an identifier that has no existing
-  record
-- **THEN** the system creates a record for that identifier, creates a new
-  account linked to it, and returns a valid access/refresh token pair whose
+- **WHEN** a caller requests a token pair for an identifier value that no
+  existing account holds
+- **THEN** the system creates a new account with that value recorded against
+  the identifier's type, and returns a valid access/refresh token pair whose
   subject identifies that account
 
 #### Scenario: Session for a known identifier
-- **WHEN** a caller requests a token pair for an identifier that already has a
-  record
+- **WHEN** a caller requests a token pair for an identifier value that an
+  existing account already holds
 - **THEN** the system returns a valid access/refresh token pair for that
-  identifier's linked account, without creating a duplicate record or a second
-  account
+  account, without creating a duplicate or a second account
 
 ### Requirement: An account may have more than one linked identifier
 The system SHALL allow more than one identifier to link to the same account,
@@ -65,6 +64,19 @@ requesting the link.
   already linked to their own account
 - **THEN** the system leaves the account's linked identifiers unchanged and
   does not error
+
+### Requirement: An account holds at most one identifier of each type
+The system SHALL allow at most one email, one phone number, and one WhatsApp
+number linked to a given account at a time. Linking a value into a type's slot
+that already holds a *different* value is a distinct capability (changing an
+identifier) that this system does not yet provide, and SHALL be rejected.
+
+#### Scenario: Type slot already holds a different value
+- **WHEN** an authenticated caller requests to link an identifier of a type
+  their account already has linked, and the value differs from the one
+  already linked
+- **THEN** the system rejects the request and leaves the account's existing
+  identifier of that type unchanged
 
 ### Requirement: Refresh an access token
 The system SHALL issue a new access token for a valid, unexpired refresh token
@@ -113,14 +125,11 @@ not this service's.
 - **THEN** the system does so without requiring, storing, or returning any profile
   field
 
-### Requirement: Identifier and account records use TSID primary keys
-The system SHALL assign each identifier record's and each account record's
-primary key as a TSID, not a database-sequence value, per
-`tn-claude/standards/java/identifiers.md`.
-
-#### Scenario: New identifier record gets a TSID
-- **WHEN** the system creates a record for a previously unseen identifier
-- **THEN** the record's primary key is a TSID value, not a sequence-issued one
+### Requirement: Account records use TSID primary keys
+The system SHALL assign each account record's primary key as a TSID, not a
+database-sequence value, per `tn-claude/standards/java/identifiers.md`. An
+identifier (email, phone, WhatsApp number) is not itself a separate record —
+it is a value held in a column on the account it belongs to.
 
 #### Scenario: New account record gets a TSID
 - **WHEN** the system creates a new account

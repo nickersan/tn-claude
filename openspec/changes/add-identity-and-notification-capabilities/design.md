@@ -259,43 +259,50 @@ guidance, verified — not assumed — including the documented reason
 `PageImpl` shouldn't be serialized directly).
 
 **17. A stable `Account` becomes the anchor identity in `tn-auth-service`; an
-`Identifier` links to exactly one account, but an account may have many
-identifiers.** Added per explicit direction from `okayat-platform` — multiple
-identifiers (email, phone, WhatsApp) linked to one account, any of them usable
-to sign in — reversing this change's own original Non-Goal ("linking more than
-one identifier to a single account... out of scope until a consumer actually
-needs it"; okayat is now that consumer. Previously the `Identifier`'s own id
-*was* the account (JWT `sub` = `identifier.id()`), which conflated "an
-identifier" with "an account" and made linking structurally impossible without
-a fork. New shape: `account(id)` — a TSID, no other columns, a pure anchor, not
-a profile (profile stays `tn-user-service`'s job, Decision 21) —
-`identifier(id, type, value, account_id)`. The existing find-or-create/TSID
-machinery on `Identifier` is unchanged; it now also resolves or creates the
-account it links to.
+account may have many identifiers, at most one of each type, stored as typed
+columns on the account itself rather than rows in a child table.** Added per
+explicit direction from `okayat-platform` — multiple identifiers (email,
+phone, WhatsApp) linked to one account, any of them usable to sign in —
+reversing this change's own original Non-Goal ("linking more than one
+identifier to a single account... out of scope until a consumer actually needs
+it"; okayat is now that consumer. Previously an identifier's own id *was* the
+account (JWT `sub` = `identifier.id()`), which conflated "an identifier" with
+"an account" and made linking structurally impossible without a fork. New
+shape, revised by Decision 23 below: `account(id, email, phone, whatsapp)` — a
+single table, not a pure anchor plus a linked child table. Profile data stays
+`tn-user-service`'s job either way (Decision 21 is unaffected by this revision).
 
 **18. Signing in with any identifier linked to an account resolves to that
-same account and session.** `generate(type, value)`: find-or-create the
-`Identifier` as before; if it already has a linked `account_id`, issue a
-session for that account; if the identifier was just created, create a new
-`Account` and link it. JWT `sub` becomes `account.id()`, not `identifier.id()`.
-No new race condition beyond what already exists — the identifier's own
-unique-constraint find-or-create is still the thing a concurrent-signup race
-needs to be safe, unchanged from today.
+same account and session.** `generate(type, value)`: map `type` to its column
+(`email`/`phone`/`whatsapp`), look up an account whose matching column equals
+`value`; if found, issue a session for it; if none exists, create a new
+account with that column set to `value` and issue a session for it. JWT `sub`
+is `account.id()`. Race safety for the "create on first use" path is the same
+concern Decision 16's find-or-create already solved for `tn-user-service` — an
+`INSERT ... ON CONFLICT (email) DO UPDATE ... RETURNING *`-shaped upsert (one
+per column, since each has its own unique constraint), not check-then-insert.
 
 **19. An authenticated caller can link an additional identifier to their
-account; linking an identifier already linked to a *different* account is
-rejected, and linking one already linked to the caller's *own* account is a
-no-op.** `tn-auth-service` does not itself verify a new identifier belongs to
-the caller before linking it — that verification is
-`tn-temporary-token-service`'s OTP flow, composed by whichever caller orchestrates
-it (`okayat-bff`), exactly like initial sign-up already composes
-`tn-temporary-token-service` + `tn-notification-service` + `tn-auth-service` +
-`tn-user-service` today (`okayat-platform` design.md Decision 3). This
-service's own contract is narrow: given an authenticated account and a
-`(type, value)`, link it to that account or reject it — trusting the caller
-has already verified it, the same trust boundary this layer already uses for
-every other opaque-user-id reference (e.g. `okayat-location-service` trusting
-`okayat-bff`'s forwarded caller id).
+account, but only into that type's empty slot; linking a value already
+belonging to a *different* account is rejected, linking a value the caller's
+*own* account already holds in that slot is a no-op, and linking a *different*
+value into a slot the caller's account already has filled is also rejected.**
+The last of these three outcomes is new since Decision 23 replaced the child-
+table shape: with one row per identifier, adding a second email to the same
+account was structurally just another row; with one `email` column, there's
+only ever room for one value, so "link a different email" and "change my
+email" become the same request, and this capability is deliberately not
+"change" — that's a distinct, not-yet-specified capability. `tn-auth-service`
+does not itself verify a new identifier belongs to the caller before linking
+it — that verification is `tn-temporary-token-service`'s OTP flow, composed by
+whichever caller orchestrates it (`okayat-bff`), exactly like initial sign-up
+already composes `tn-temporary-token-service` + `tn-notification-service` +
+`tn-auth-service` + `tn-user-service` today (`okayat-platform` design.md
+Decision 3). This service's own contract is narrow: given an authenticated
+account and a `(type, value)`, fill that type's slot or reject — trusting the
+caller has already verified it, the same trust boundary this layer already
+uses for every other opaque-user-id reference (e.g. `okayat-location-service`
+trusting `okayat-bff`'s forwarded caller id).
 
 **20. The JWT keeps carrying `identifierType`/`identifier` claims — the
 identifier used for *this particular session* — but they stop being the
@@ -328,7 +335,39 @@ same "no-op, logs in the clear" shape as the existing `StubEmailChannel`/
 `StubSmsChannel` — no real provider chosen for any of the three, per that
 service's own `tasks.md` 5.6). `tn-temporary-token-service` needs no change —
 `owner` is already an opaque string, per its own spec's "owner is an opaque
-string" requirement.
+string" requirement. In `tn-auth-service` this now means a third column
+(`whatsapp`), per Decision 23, not a third row-type in a child table.
+
+**23. `Identifier` is not a persisted entity anywhere in `tn-auth-service` —
+`Account` carries the identifier values directly, as typed, individually
+unique, nullable columns (`email`, `phone`, `whatsapp`). Reverses Decision 1's
+`identifier` table (already implemented — `tasks.md` 3.2/3.3) and the first
+draft of Decisions 17-19's `identifier(..., account_id)` child-table design —
+not an extension of either, a replacement.** Direction from the requester:
+"I don't think identifier is an entity, I think user has a phone, email,
+whatsapp, etc, with unique constraints, so that only one user can have a given
+value in these fields." Shape: `account(id TSID, email VARCHAR NULL, phone
+VARCHAR NULL, whatsapp VARCHAR NULL)`, with a `UNIQUE` constraint on each of
+the three columns individually (not a compound one — each type's uniqueness is
+independent, and every database this layer targets already treats `NULL` as
+never equal to `NULL`, so leaving the other two columns unset needs no special
+handling). `Identifier` survives only as the request/response value shape
+(`{type, value}`) at the API boundary (`generate`, the new link endpoint) and
+in `tn-notification-service`'s `send(Identifier, message)` — never persisted
+as its own row anywhere. Alternative considered (the original Decision 1 /
+17-19 design): a child `identifier` table linked by `account_id` — rejected on
+this reconsideration because it allows an account arbitrarily many identifiers
+of the *same* type, a flexibility nobody asked for and that the flat-column
+shape rules out for free (Decision 19's third, new rejection case exists
+precisely because the flat shape makes "two emails on one account" structurally
+impossible rather than something application code has to police). Trade-off
+accepted: a fourth identifier type in the future needs a schema migration
+(new column) rather than a bare enum-value addition — judged acceptable for a
+small, slow-growing, closed set of channels, and no worse than the cost the
+child-table design would have paid to add a real per-type uniqueness
+guarantee anyway. This reopens already-built, tested, committed code
+(`tasks.md` 3.2/3.3, the original `identifier` table and its find-or-create
+machinery) — see Risks for what that means for this pass.
 
 ## Risks / Trade-offs
 
@@ -404,16 +443,20 @@ once Okayat (or anything else depending on these services) actually ships.
   above are now managed in `tn-parent`'s `dependencyManagement`; a component
   only needs to add the dependency and (for `TestRestTemplate` users) the
   annotation.
-- [Decisions 17-22 (the `Account`/multi-identifier rework) modify already-built,
-  tested, committed code, not green-field work — `tn-auth-service`'s JWT shape,
-  every Java DSL contract describing the old identifier-is-the-account shape,
-  and `tn-user-service`'s entire keying scheme (`identifierType`/
-  `identifierValue` → `accountId`) all need real changes, not additions] →
-  Mitigation: treat this with the same rigor as the original overhaul —
-  baseline-check existing tests before touching them (as §6.1 did for
-  `tn-temporary-token-service`), expect to rewrite contracts describing the old
-  shape rather than extend them, and re-verify the concurrency/race-safety
-  tests still hold against the new find-or-create-through-an-account path, not
+- [Decisions 17-23 (the `Account`/multi-identifier rework, and Decision 23's
+  further collapse of `Identifier` into columns) modify already-built, tested,
+  committed code, not green-field work — this now includes reopening the
+  *original* `identifier` table and its find-or-create machinery
+  (`tasks.md` 3.2/3.3, built for Decision 1), not just the not-yet-built
+  Account-linking work: `tn-auth-service`'s persisted schema, its JWT shape,
+  every Java DSL contract describing either the old email-only or the old
+  identifier-table shape, and `tn-user-service`'s entire keying scheme
+  (`identifierType`/`identifierValue` → `accountId`) all need real changes,
+  not additions] → Mitigation: treat this with the same rigor as the original
+  overhaul — baseline-check existing tests before touching them (as §6.1 did
+  for `tn-temporary-token-service`), expect to rewrite contracts describing
+  either prior shape rather than extend them, and re-verify the concurrency/
+  race-safety tests still hold against the new per-column upsert path, not
   just re-read the SQL.
 
 ## Migration Plan
@@ -432,17 +475,19 @@ data migration:
   rows (i.e. after Okayat or anything else has shipped on top of it), redo this
   plan as an actual data migration — don't reuse this one by analogy.
 
-**Second pass, for Decisions 17-22** (added after the above was already
-implemented): `tn-auth-service` adds `account` and an `account_id` FK on
-`identifier`; since nothing is deployed yet, this is again schema replacement
-on top of the just-built tables, not a backfill — every existing `identifier`
-row (there are none in any real environment, only test data) would need a
-freshly-created `account` row per identifier if this were ever run against
-real data, but it isn't being run against any. `tn-user-service` drops
-`identifier_type`/`identifier_value` entirely and adds `account_id`
-(`BIGINT`, unique) — same schema-replacement treatment, same caveat about
-redoing this properly if it's ever repeated after something has actually
-shipped.
+**Second pass, for Decisions 17-23** (added after the above was already
+implemented): `tn-auth-service` drops the `identifier` table entirely (built
+for Decision 1, `tasks.md` 3.2/3.3) and replaces it with `account(id, email,
+phone, whatsapp)`, per Decision 23. Since nothing is deployed yet, this is
+again schema replacement, not a backfill — every existing `identifier` row
+(there are none in any real environment, only test data) would need its
+`type`/`value` folded into the matching column of a freshly-created `account`
+row if this were ever run against real data, but it isn't being run against
+any. `tn-user-service` drops `identifier_type`/`identifier_value` entirely and
+adds `account_id` (`BIGINT`, unique) — unaffected by Decision 23, since it
+never stored an identifier value's *shape*, only a foreign reference to one;
+same schema-replacement treatment, same caveat about redoing this properly if
+it's ever repeated after something has actually shipped.
 
 ## Open Questions
 
