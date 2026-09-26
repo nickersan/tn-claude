@@ -1,15 +1,15 @@
 ## Purpose
 
-Dispatches a message to an email address, a phone number, or a WhatsApp number,
-behind one interface, so consuming services never integrate with an SMS/email/
-WhatsApp provider directly.
+Dispatches a message to an email address or a phone number, behind one
+interface, so consuming services never integrate with an SMS/email provider
+directly.
 
 ## ADDED Requirements
 
 ### Requirement: Dispatch a message to an identifier
-The system SHALL accept a message and an identifier (email address, phone
-number, or WhatsApp number) and SHALL deliver that message through the channel
-matching the identifier's type.
+The system SHALL accept a message and an identifier (email address or phone
+number) and SHALL deliver that message through the channel matching the
+identifier's type.
 
 #### Scenario: Dispatch to an email address
 - **WHEN** a caller submits a message and an email-address identifier
@@ -19,13 +19,9 @@ matching the identifier's type.
 - **WHEN** a caller submits a message and a phone-number identifier
 - **THEN** the system delivers the message by SMS to that number
 
-#### Scenario: Dispatch to a WhatsApp number
-- **WHEN** a caller submits a message and a WhatsApp-number identifier
-- **THEN** the system delivers the message by WhatsApp to that number
-
 ### Requirement: Channel choice is not the caller's concern
-The system SHALL determine the delivery channel (email, SMS, or WhatsApp) from
-the identifier's type; it SHALL NOT require the caller to name a provider or
+The system SHALL determine the delivery channel (email or SMS) from the
+identifier's type; it SHALL NOT require the caller to name a provider or
 channel-specific API.
 
 #### Scenario: Caller does not specify a channel
