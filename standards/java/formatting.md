@@ -160,6 +160,41 @@ return Stream.of(subject.getDeclaredFields())
   .toList();
 ```
 
+## Long string literals — text blocks, not concatenation
+
+When a string literal doesn't fit within the line length, write it as a text
+block (`"""`), not as `"..." +` concatenation across lines. Open the block on the
+line of the assignment or annotation attribute it belongs to, and indent its
+content +2 from that line.
+
+Where the closing `"""` goes depends on whether the value is one logical line:
+
+- **One logical line** (an OpenAPI `summary` or `description`, a message): end
+  each wrapped line with `\` so the line break isn't part of the string, and put
+  the closing `"""` directly after the last content line, not on a line of its
+  own. A closing `"""` on its own line would add a trailing newline to the value.
+
+  ```java
+  @Operation(
+    summary = """
+      Server-sent events for every location change, from any instance: `location.created` or `location.updated`, \
+      each carrying the location's full representation (the same shape GET /v1/locations/{id} returns)"""
+  )
+  ```
+
+- **Genuinely multi-line** (SQL, templates): keep the line breaks, and put the
+  closing `"""` on its own line at the same indent as the content. The trailing
+  newline this adds is harmless there. Multi-line SQL constants already follow
+  this form (see `UserRepositoryImpl`'s `FIND_OR_CREATE_*` in `tn-user-service`).
+
+  ```java
+  private static final String SQL_FOLLOW = """
+    INSERT INTO follow (follow_id, user_id, location_id, created)
+    VALUES (:id, :userId, :locationId, CURRENT_TIMESTAMP)
+    ON CONFLICT (user_id, location_id) DO NOTHING
+    """;
+  ```
+
 ## `toString()` layout
 
 Value types build the string by concatenation across lines, one field per line:

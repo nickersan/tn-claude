@@ -62,6 +62,48 @@ public class Identifier
 generator, not a lifecycle-callback workaround. Column type is `BIGINT` — identical
 to the sequence-based columns it replaces.
 
+## Exception — Envers revision numbers use a database sequence
+
+Hibernate Envers' revision entity (the `REVINFO`-style table behind
+`@RevisionEntity`) keeps a **database sequence** for its revision number, not a
+TSID. Envers orders every entity's history by revision number and answers "state
+as of revision N" queries with it, so the numbers need to come from one strictly
+increasing source shared by every instance. TSIDs from different instances are
+only *roughly* time-ordered: two instances writing in the same millisecond can
+produce numbers in either order. A single database sequence can't.
+
+A sequence orders revisions by when each transaction draws its number, not by
+when it commits. For one entity's history that's the same thing, as long as edits
+to the same entity are serialized (e.g. by locking the entity's row for the edit,
+as `okayat-location-service` does). That's the pattern to follow.
+
+This applies only to the revision number. The audited entities themselves, and
+any other table, still use TSIDs. A revision number is an internal audit ordinal
+anyway, so a sequence leaks nothing of note.
+
+```java
+@Entity
+@RevisionEntity(RevisionUserListener.class)
+@Table(name = "revision")
+public class Revision
+{
+  @Id
+  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "revision_seq")
+  @SequenceGenerator(name = "revision_seq", sequenceName = "revision_seq", allocationSize = 1)
+  @RevisionNumber
+  private Long id;
+
+  @RevisionTimestamp
+  private long timestamp;
+
+  ...
+}
+```
+
+Keep `allocationSize = 1`. A larger allocation hands each instance a block of
+numbers, which reintroduces exactly the cross-instance out-of-order problem this
+exception exists to avoid.
+
 ## Scope
 
 This is a standard for **new** identifiers, applied as each entity is next touched —
