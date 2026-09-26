@@ -555,11 +555,63 @@ planned), plus OpenAPI, Java contracts, and PostgreSQL/Testcontainers.
       `logging/README.md` cross-reference to `PropertyLogger` (finding 5) — all
       three done directly rather than left as tasks
 - [ ] 7.4 Archive this change (`openspec archive
-      add-identity-and-notification-capabilities`) once 1–6 are done; verify
-      `openspec validate --specs` passes afterwards
+      add-identity-and-notification-capabilities`) once 1–6 and 8 are done;
+      verify `openspec validate --specs` passes afterwards
 
   Not done — sections 1, 2, 3, 4, and 6 are fully complete; section 5 is
   complete except 5.6 (a real email/SMS provider), which is deliberately open
-  pending a provider decision, not an oversight. This task's own wording
-  ("once 1–6 are done") means archiving now, with 5.6 still open, would be
-  premature — left for a follow-up once 5.6 is resolved.
+  pending a provider decision, not an oversight. Section 8 (multi-identifier
+  accounts, design.md Decisions 17-22) was added after this task was last
+  updated — also not done. This task's own wording means archiving now, with
+  5.6 and all of §8 still open, would be premature — left for a follow-up
+  once both are resolved.
+
+## 8. Multi-identifier accounts (added after initial build — design.md Decisions 17-22)
+
+Everything below modifies already-built, tested, committed code from §§1-6,
+not green-field work — baseline-check existing tests before touching them (as
+§6.1 did), and expect to rewrite contracts describing the old identifier-is-
+the-account shape rather than extend them (see the Risk design.md records for
+this section).
+
+- [ ] 8.1 Add an `account` table (TSID primary key, no other columns) to
+      `tn-auth-service` and an `account_id` FK on `identifier`; update
+      `generate(type, value)` to find-or-create the identifier as before, then
+      resolve or create its linked account, and mint the JWT with `sub` =
+      account id, not identifier id (design.md Decisions 17-18); verify with a
+      test that two different identifiers linked to the same account both
+      produce a session with the same subject, and that a brand-new identifier
+      produces a session for a brand-new account
+- [ ] 8.2 Add `WHATSAPP` to the shared `IdentifierType` enum (`tn-auth-service`,
+      `tn-user-service`); verify a token pair can be issued for a WhatsApp
+      identifier the same way as email/phone (design.md Decision 22)
+- [ ] 8.3 Implement "link an additional identifier to my account": given an
+      authenticated caller and a `(type, value)`, link it to the caller's
+      account, race-safe against a concurrent link attempt for the same
+      identifier (same discipline as every other find-or-create in this
+      layer); reject if already linked to a different account, no-op if
+      already linked to the caller's own (design.md Decision 19); verify with
+      tests covering all three outcomes, plus a concurrency test for two
+      simultaneous link attempts on the same new identifier
+- [ ] 8.4 Rekey `tn-user-service`'s `User` from `(identifierType,
+      identifierValue)` to a single unique `accountId`; remove the identifier
+      columns entirely — this service no longer stores or validates an
+      identifier value (design.md Decision 21); verify with tests covering
+      find-or-create by account id, duplicate-account rejection, and that the
+      old identifier-keyed contract tests have been rewritten (not left
+      passing against a shape that no longer exists) to describe the new one
+- [ ] 8.5 Update both services' Java DSL contract tests and OpenAPI docs to
+      describe the account-keyed shapes (request/response bodies, the new
+      link endpoint); verify the generated contract tests pass against the
+      reworked implementation, not the pre-rework `.java` contract files left
+      unchanged
+- [ ] 8.6 Add `StubWhatsAppChannel` to `tn-notification-service` (same
+      no-op-but-logs-in-the-clear shape as `StubEmailChannel`/
+      `StubSmsChannel`, same deliberate non-goal of a real provider — design.md
+      Decision 22); verify with a test mirroring `StubEmailChannelTest`/
+      `StubSmsChannelTest`
+- [ ] 8.7 Re-run the existing find-or-create concurrency tests
+      (`UserRepositoryFindOrCreateConcurrencyIntegrationTest`'s account-id
+      equivalent, and a new one for 8.3's identifier-link) against the
+      reworked schema; verify the race-safety claim is proven again, not
+      assumed to still hold because the SQL pattern looks the same

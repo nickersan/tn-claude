@@ -83,10 +83,8 @@ assumed):
   (`tn-user-service`) — an explicit instruction, not a default.
 
 **Non-Goals:**
-- Choosing an SMS/email provider — that's `tn-notification-service`'s own
+- Choosing an SMS/email/WhatsApp provider — that's `tn-notification-service`'s own
   implementation detail (see Open Questions).
-- Linking more than one identifier to a single account — out of scope until a
-  consumer actually needs it.
 - Changing `tn-temporary-token-service`'s data model — already generic. (Its
   logging does change — see Context.)
 - Merging `tn-auth-service` and `tn-user-service` into one service — considered and
@@ -260,6 +258,78 @@ landed at the same time: `Pageable`/`PagedModel` replaces `tn-data-service`'s
 guidance, verified — not assumed — including the documented reason
 `PageImpl` shouldn't be serialized directly).
 
+**17. A stable `Account` becomes the anchor identity in `tn-auth-service`; an
+`Identifier` links to exactly one account, but an account may have many
+identifiers.** Added per explicit direction from `okayat-platform` — multiple
+identifiers (email, phone, WhatsApp) linked to one account, any of them usable
+to sign in — reversing this change's own original Non-Goal ("linking more than
+one identifier to a single account... out of scope until a consumer actually
+needs it"; okayat is now that consumer. Previously the `Identifier`'s own id
+*was* the account (JWT `sub` = `identifier.id()`), which conflated "an
+identifier" with "an account" and made linking structurally impossible without
+a fork. New shape: `account(id)` — a TSID, no other columns, a pure anchor, not
+a profile (profile stays `tn-user-service`'s job, Decision 21) —
+`identifier(id, type, value, account_id)`. The existing find-or-create/TSID
+machinery on `Identifier` is unchanged; it now also resolves or creates the
+account it links to.
+
+**18. Signing in with any identifier linked to an account resolves to that
+same account and session.** `generate(type, value)`: find-or-create the
+`Identifier` as before; if it already has a linked `account_id`, issue a
+session for that account; if the identifier was just created, create a new
+`Account` and link it. JWT `sub` becomes `account.id()`, not `identifier.id()`.
+No new race condition beyond what already exists — the identifier's own
+unique-constraint find-or-create is still the thing a concurrent-signup race
+needs to be safe, unchanged from today.
+
+**19. An authenticated caller can link an additional identifier to their
+account; linking an identifier already linked to a *different* account is
+rejected, and linking one already linked to the caller's *own* account is a
+no-op.** `tn-auth-service` does not itself verify a new identifier belongs to
+the caller before linking it — that verification is
+`tn-temporary-token-service`'s OTP flow, composed by whichever caller orchestrates
+it (`okayat-bff`), exactly like initial sign-up already composes
+`tn-temporary-token-service` + `tn-notification-service` + `tn-auth-service` +
+`tn-user-service` today (`okayat-platform` design.md Decision 3). This
+service's own contract is narrow: given an authenticated account and a
+`(type, value)`, link it to that account or reject it — trusting the caller
+has already verified it, the same trust boundary this layer already uses for
+every other opaque-user-id reference (e.g. `okayat-location-service` trusting
+`okayat-bff`'s forwarded caller id).
+
+**20. The JWT keeps carrying `identifierType`/`identifier` claims — the
+identifier used for *this particular session* — but they stop being the
+canonical way to identify the user; `sub` (`account.id()`) is.** Considered and
+rejected: dropping the claims now that they're not load-bearing — kept because
+they're still useful, cheap metadata (e.g. "signed in via email this time"),
+and removing them would be a second breaking claims-shape change for no
+benefit. What actually changes: every downstream consumer of this JWT — this
+layer's own services and `okayat-bff` alike — SHALL key off `sub`, never off
+the identifier claims, when identifying *the user* as opposed to *the channel
+they happened to use this time*. This is the concrete meaning of "use their
+unique ID everywhere."
+
+**21. `tn-user-service`'s `User` is rekeyed from `(identifierType,
+identifierValue)` to a single `accountId` — it no longer stores or validates
+an identifier value at all.** Follows directly from Decision 17: once
+`tn-auth-service` is the sole source of truth for which identifiers link to an
+account, `tn-user-service` duplicating identifier data was only ever standing
+in for a stable key it didn't have yet. `find-or-create` now takes an
+`accountId` (resolved from the JWT `sub` by whatever calls it — `okayat-bff`,
+same composition pattern as today) instead of an identifier. Side effect, not
+the goal: the "mask the identifier value" logging requirement in this
+service's own spec narrows to "there's no longer a value to mask" — a
+simplification that falls out of the rekey, not a separate change.
+
+**22. `WHATSAPP` becomes a third `IdentifierType`, alongside `EMAIL`/`PHONE`.**
+Affects `tn-auth-service` and `tn-user-service`'s accepted-type validation, and
+`tn-notification-service` (a third stub channel, `StubWhatsAppChannel`,
+same "no-op, logs in the clear" shape as the existing `StubEmailChannel`/
+`StubSmsChannel` — no real provider chosen for any of the three, per that
+service's own `tasks.md` 5.6). `tn-temporary-token-service` needs no change —
+`owner` is already an opaque string, per its own spec's "owner is an opaque
+string" requirement.
+
 ## Risks / Trade-offs
 
 Not treated as a risk: breaking the current `email`-only shape. Nothing in this
@@ -334,11 +404,23 @@ once Okayat (or anything else depending on these services) actually ships.
   above are now managed in `tn-parent`'s `dependencyManagement`; a component
   only needs to add the dependency and (for `TestRestTemplate` users) the
   annotation.
+- [Decisions 17-22 (the `Account`/multi-identifier rework) modify already-built,
+  tested, committed code, not green-field work — `tn-auth-service`'s JWT shape,
+  every Java DSL contract describing the old identifier-is-the-account shape,
+  and `tn-user-service`'s entire keying scheme (`identifierType`/
+  `identifierValue` → `accountId`) all need real changes, not additions] →
+  Mitigation: treat this with the same rigor as the original overhaul —
+  baseline-check existing tests before touching them (as §6.1 did for
+  `tn-temporary-token-service`), expect to rewrite contracts describing the old
+  shape rather than extend them, and re-verify the concurrency/race-safety
+  tests still hold against the new find-or-create-through-an-account path, not
+  just re-read the SQL.
 
 ## Migration Plan
 
 No real data to migrate (see Context — nothing in this workspace is in
-production). This is schema replacement, not data migration:
+production, still true as of Decisions 17-22). This is schema replacement, not
+data migration:
 
 - `tn-auth-service`: replace the `email` table with the new `identifier` table
   (`BIGINT` primary key via `@Tsid`); drop `email`. New Flyway script, no
@@ -350,7 +432,20 @@ production). This is schema replacement, not data migration:
   rows (i.e. after Okayat or anything else has shipped on top of it), redo this
   plan as an actual data migration — don't reuse this one by analogy.
 
+**Second pass, for Decisions 17-22** (added after the above was already
+implemented): `tn-auth-service` adds `account` and an `account_id` FK on
+`identifier`; since nothing is deployed yet, this is again schema replacement
+on top of the just-built tables, not a backfill — every existing `identifier`
+row (there are none in any real environment, only test data) would need a
+freshly-created `account` row per identifier if this were ever run against
+real data, but it isn't being run against any. `tn-user-service` drops
+`identifier_type`/`identifier_value` entirely and adds `account_id`
+(`BIGINT`, unique) — same schema-replacement treatment, same caveat about
+redoing this properly if it's ever repeated after something has actually
+shipped.
+
 ## Open Questions
 
-- Which SMS/email provider(s) `tn-notification-service` integrates with first —
-  implementation detail of that service, doesn't change this contract.
+- Which SMS/email/WhatsApp provider(s) `tn-notification-service` integrates
+  with first — implementation detail of that service, doesn't change this
+  contract.
