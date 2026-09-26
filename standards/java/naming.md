@@ -8,6 +8,11 @@
 - Sub-packages describe a layer or feature, not a type bucket:
   `com.tn.query.node`, `com.tn.lang.util.function`, `com.tn.lang.util.stream`,
   `com.tn.query.jdbc`, `com.tn.query.jpa`.
+- **Package names are singular**, including layer packages in a service:
+  `controller`, `repository`, `service`, `domain`, `config`, and never
+  `controllers` or `repositories`. A package names the kind of thing it holds,
+  not a collection of them. `tn-service` (`com.tn.service.controller`) and
+  `tn-data-service` already follow this.
 
 ## Types
 

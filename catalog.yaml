@@ -45,9 +45,11 @@ capabilities:
     summary: >-
       Generic one-time-token generate/verify (owner string + type NUMERIC|BASE64 +
       TTL in minutes). No notion of email/phone/identity — the caller decides what
-      "owner" means. Reused as-is for OTP-style login flows.
+      "owner" means. Limits generation per owner (429 over the limit) and wrong
+      guesses per token (the token is invalidated at the limit), across every
+      instance. Suited to OTP-style login flows.
     repo: tn-temporary-token-service
-    api: POST /v1/generate, POST /v1/verify, GET (lookup)
+    api: POST /v1/actions/generate-token, POST /v1/actions/verify-token, POST /v1/actions/check-expiry
     status: active
     spec: openspec/specs/tn-temporary-token-service/spec.md
 
@@ -57,13 +59,14 @@ capabilities:
       Generic token/session service: mints and refreshes a JWT access/refresh
       token pair for an opaque subject id — no identifier, account, or user
       concept of its own. Every other claim (issuer, issued-at, expiration, a
-      fresh per-token TSID as `jti`) is this service's own to add, never
-      caller-supplied. Resolving an identifier to a stable id is entirely
+      fresh per-token TSID as `jti`, and `token_use` = `access`|`refresh`) is
+      this service's own to add, never caller-supplied. Verifiers should accept
+      only `token_use` = `access` as a bearer token. Resolving an identifier to a stable id is entirely
       `tn-user-service`'s job. Supersedes tn-oauth-service (deprecated, same
       code under the `com.tn.oauthservice` package / `pilch.oauth-service.*`
       properties).
     repo: tn-auth-service
-    api: POST /v1/generate, POST /v1/refresh
+    api: POST /v1/actions/generate-tokens, POST /v1/actions/refresh-tokens
     status: active
     spec: openspec/specs/tn-auth-service/spec.md
 

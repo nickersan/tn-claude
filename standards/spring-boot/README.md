@@ -34,11 +34,11 @@ OpenAPI docs from it — annotations aren't optional decoration.**
 - Docs are served at SpringDoc's defaults (`/v3/api-docs`, Swagger UI at
   `/swagger-ui.html`) — don't relocate them without a reason.
 
-## Controller layout — `api` interfaces, `controllers` implementations
+## Controller layout — `api` interfaces, `controller` implementations
 
 **Every endpoint's contract (routing + OpenAPI annotations + request/response
 shapes) lives on an interface in the `api` package; a plain `@RestController`
-class in a `controllers` package implements it and holds no annotations beyond
+class in a `controller` package implements it and holds no annotations beyond
 `@RestController` itself.** Springdoc-openapi's own documented pattern for
 keeping API documentation separate from handler logic — Spring MVC's
 `RequestMappingHandlerMapping` resolves `@RequestMapping`-family annotations
@@ -63,8 +63,8 @@ public interface GenerateApi
   record GenerateRequest(String id, List<Claim> claims) {}
 }
 
-// controllers/GenerateController.java
-package com.tn.auth.controllers;
+// controller/GenerateController.java
+package com.tn.auth.controller;
 
 @RestController
 @AllArgsConstructor
@@ -85,10 +85,10 @@ public class GenerateController implements GenerateApi
 - Request/response records (and any endpoint-local types) are nested in, or
   live alongside, the interface in `api` — they're part of the contract, not
   the implementation.
-- The implementing class in `controllers` carries the dependencies
+- The implementing class in `controller` carries the dependencies
   (`@AllArgsConstructor` + `final` fields, as elsewhere in this layer) and
   nothing else — no `@RequestMapping`, no `@Tag`, no `@Operation`. If a
-  reviewer finds a mapping or OpenAPI annotation on a class in `controllers`,
+  reviewer finds a mapping or OpenAPI annotation on a class in `controller`,
   that's the signal something drifted from this convention.
 - Applies to every controller in every `java-spring-service` component, not
   just ones being actively touched — new controllers are written this way
@@ -157,6 +157,35 @@ public class ShouldGenerateTokenPair implements Supplier<Collection<Contract>>
   `contract-producer.base-class.tests` — no new build config needed, just the file
   move and the trigger directory (`src/ct/java/contracts` instead of
   `src/ct/resources/contracts`).
+
+## API versioning — every path starts `/v<n>`
+
+**Every API path starts with its major version: `/v1/...`.** An API stays on
+its version for as long as its changes are backwards compatible. A breaking
+change to an existing API moves it to the next version (`/v1` → `/v2`, `/v2` →
+`/v3`, and so on) rather than changing the existing version in place.
+
+Breaking changes include:
+- removing or renaming an endpoint, a field, or a query parameter;
+- changing a field's type or meaning;
+- making an optional request field required;
+- removing an enum value a caller may send or receive.
+
+Adding an endpoint, an optional request field, or a response field is not
+breaking, and stays on the current version. So is a new error response for a
+case that previously succeeded only by accident (e.g. a new 429 when a limit
+is exceeded).
+
+- The version is part of the path in the `api` interface's mapping (for
+  example `@RequestMapping("/v1/users")`, or `/v1/...` on each method). It is
+  never a header or a query parameter.
+- When an API moves to a new version, keep serving the previous one until its
+  consumers have moved, then remove it. Don't break it in place to save the
+  bump.
+- Operational endpoints are not API and carry no version: the health probe
+  (`/noop`, see `../kubernetes/README.md`), `/actuator/**`, and SpringDoc's
+  `/v3/api-docs` and `/swagger-ui.html` (whose `v3` is the OpenAPI spec's version,
+  not the service's).
 
 ## API design — REST for resources, `/actions/` for everything else
 
