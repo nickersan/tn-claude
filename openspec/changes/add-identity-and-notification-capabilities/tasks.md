@@ -585,20 +585,24 @@ split now captured in `standards/spring-boot/README.md` (design.md Decision
 
 - [ ] 8.1 Simplify `tn-auth-service`: drop the `identifier` table (built in
       3.2/3.3) entirely — no replacement identity table of any shape;
-      `generate`/`refresh` take an opaque `id` (string) and a list of
-      name/value claims instead of an `IdentifierType`/value pair; JWT
-      `sub` = `id`, payload carries every supplied claim verbatim, not
-      validated or interpreted; `refresh_token`'s `identifier_id` column
-      becomes a plain `id` column (no foreign key — nothing left in this
-      service to reference) (design.md Decisions 17, 21); verify with tests
-      that a token pair carries the given id/claims through unchanged, and
-      that this service compiles and runs with no `Identifier`,
-      `IdentifierType`, or account-shaped concept anywhere in it
-- [ ] 8.2 `refresh(token)` re-mints an access token carrying the *same* id and
-      claims as the original session, read back from the presented, verified
-      refresh token itself (design.md Decision 17); verify with a test that
-      refreshing a session issued with arbitrary claim names returns a new
-      access token carrying those same claims unchanged
+      `generate`/`refresh` take only an opaque `id` (string) — no
+      caller-supplied claims of any kind; JWT `sub` = `id`; `refresh_token`'s
+      `identifier_id` column becomes a plain `subject_id` column (no foreign
+      key — nothing left in this service to reference) (design.md Decisions
+      17, 21); verify with tests that a token pair carries the given id
+      through unchanged, and that this service compiles and runs with no
+      `Identifier`, `IdentifierType`, `Claim`, or account-shaped concept
+      anywhere in it
+- [ ] 8.2 Give every issued token its own fresh TSID as its `jti` claim,
+      generated when that specific token is minted — access and refresh
+      tokens issued together get distinct `jti` values, and a refreshed
+      access token gets a new one of its own, not the one its refresh token
+      carries (design.md Decision 21); `refresh(token)` re-mints an access
+      token carrying the *same* subject `id` as the original session, read
+      back from the presented, verified refresh token's own subject (design.md
+      Decision 17); verify with tests asserting an access/refresh pair's `jti`
+      values differ, and that refreshing produces a new access token with yet
+      another fresh `jti` while the subject stays the same
 - [ ] 8.3 Restructure `tn-auth-service`'s controllers to the `api`-interface /
       `controllers`-implementation split (`standards/spring-boot/README.md`,
       design.md Decision 23): routing + OpenAPI annotations move onto an

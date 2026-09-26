@@ -259,22 +259,21 @@ guidance, verified — not assumed — including the documented reason
 `PageImpl` shouldn't be serialized directly).
 
 **17. `tn-auth-service` becomes a generic token/session service: it takes an
-opaque `id` (a string) and a caller-supplied list of claims, and knows
-nothing about identifiers, accounts, or users.** Supersedes both earlier
-drafts of this section (an `identifier` child table linked to an `Account` by
-`account_id`, and later `email`/`phone`/`whatsapp` as columns directly on
-`Account` — neither shipped in committed code; both discarded here). Direct
-requester correction: "I don't think the auth service should be storing
-phone, email, etc... all auth-service is responsible for is the management
-of token creation and subsequent refreshes." `generate(id, claims)` mints a
-JWT whose subject is `id` and whose payload carries each supplied claim
-verbatim — no identifier lookup, no identifier or account persistence
-anywhere in this service. `refresh(token)` re-mints an access token carrying
-the *same* `id` and the *same* claims the original session had — read back
-from the presented, verified refresh token itself, since that's the only
-place this service could get them from once it stores nothing about what
-they mean. This also removes the `IdentifierType` enum and the `/v1/link`
-endpoint from `tn-auth-service` entirely — see Decision 19.
+opaque `subject` (a string) as the token subject, and controls every other
+claim itself.** Supersedes both earlier drafts of this section (an
+`identifier` child table linked to an `Account` by `account_id`, and later
+`email`/`phone`/`whatsapp` as columns directly on `Account` — neither shipped
+in committed code; both discarded here) and a third draft that briefly let
+the caller supply an arbitrary claims list alongside the subject — also
+discarded, per direct requester correction: "all that should be passed is
+the subject claim, all other claims are controlled by the auth-service."
+`generate(subject)` mints a JWT whose `sub` claim is `subject`; no identifier
+lookup, no identifier or account persistence anywhere in this service, and no
+caller-supplied claim of any kind. `refresh(token)` re-mints an access token
+carrying the *same* subject as the original session (read back from the
+presented, verified refresh token's own `sub`). This also removes the
+`IdentifierType` enum and the `/v1/link` endpoint from `tn-auth-service`
+entirely — see Decision 19.
 
 **18. Identifier storage and resolution move to `tn-user-service`; its `User`
 gets `email`/`phone` as individually unique, nullable columns, and its own id
@@ -313,30 +312,37 @@ order — `tn-auth-service` never resolves an identifier itself.** Direct
 requester statement: "systems will use a combination of user-service and
 auth-service during login." Whichever caller orchestrates login (`okayat-bff`)
 resolves or creates the user via `tn-user-service` first (getting back a
-stable user id), then calls `tn-auth-service.generate(id, claims)` to mint the
-session. The claims a caller passes are its own business — `tn-auth-service`
-neither validates nor interprets them — so `okayat-bff` can still carry
-`identifierType`/`identifier` as informational claims (the "informational, not
-canonical" intent the previous draft of this section gave `sub` vs. the JWT's
-identifier claims) simply by including them in the claims list it passes to
-`generate()`. Every downstream consumer of this JWT SHALL key off `sub`
-(`= id`, ultimately `tn-user-service`'s own id), never off any claim, when
-identifying *the user* as opposed to metadata about *how* they signed in —
-this is the concrete meaning of "use their unique ID everywhere," now
-enforced by `tn-auth-service` simply having no other identifying concept to
-offer.
+stable user id), then calls `tn-auth-service.generate(subject)` (passing that
+id as `subject`) to mint the session. Every downstream consumer of this JWT
+SHALL key off `sub` (`= subject`, ultimately `tn-user-service`'s own id) to
+identify *the user* — this is the
+concrete meaning of "use their unique ID everywhere," now enforced by
+`tn-auth-service` having no other identifying concept to offer at all.
+Superseded by this pass: the previous draft's plan for `okayat-bff` to carry
+`identifierType`/`identifier` as informational claims riding along in the
+JWT — there is no longer a claims list for it to ride in (Decision 21). Any
+caller wanting "which identifier did this user sign in with" metadata now
+asks `tn-user-service` directly; it is not available from the token.
 
-**21. Claims are opaque name/value pairs — `tn-auth-service` neither validates
-nor interprets their names or values, and defensively treats every claim
-*value* as loggable-unsafe, since it cannot know which ones are sensitive.**
-`GenerateRequest{ id: String, claims: List<Claim{name, value}> }`. Structured
-log lines emitted by this service carry `id` and claim *names* only, never
-claim *values* — the same "log the event, not the payload" discipline used
-elsewhere in this layer, applied here by necessity rather than by knowing
-which fields are sensitive (it doesn't). The refresh-token record itself
-still needs its own TSID primary key (Decision 6, layer-wide) and stores
-`id` as plain data — there is no local table for it to reference via a
-foreign key any more, since `tn-auth-service` owns no identity table.
+**21. Every issued token gets a fresh TSID as its `jti` (JWT ID) claim,
+generated by `tn-auth-service` itself when that specific token is minted —
+never supplied by the caller, never carried over from another token.**
+Direct requester correction: "the id claim on both tokens should be a new
+TSID created when the token is created." Access and refresh tokens minted
+together by `generate()` each get their *own* fresh `jti` — they don't share
+one — and a refreshed access token gets another fresh one of its own, not the
+one its refresh token carries. This is the standard purpose of the `jti`
+registered claim (RFC 7519 §4.1.7: a unique identifier for the token itself);
+`tn-auth-service` had no claim serving this purpose before caller-supplied
+claims were removed (Decision 17), so adding it here isn't incidental to that
+removal, it's filling the gap it left. No new persistence: `jti` is embedded
+in the JWT only, not stored — the refresh-token record's own TSID primary key
+(Decision 6, layer-wide) is a separate value, generated separately, for the
+database row, not for the JWT it contains. Structured log lines emitted by
+this service carry the subject `id` — an opaque internal id, no more
+sensitive than any other in this layer (`tn-user-service`'s own spec makes
+the same call for its own id) — but not the token value itself, per the
+existing "log the event, not the payload" discipline.
 
 **22. `WHATSAPP` is dropped from this change entirely, for now.** Both
 earlier drafts of the `tn-auth-service` section added it; neither shipped.

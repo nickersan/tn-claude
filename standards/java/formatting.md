@@ -104,6 +104,25 @@ EQUAL(
 ),
 ```
 
+**Applies to record headers too — a record's component list is a constructor
+declaration** — and the one-component-per-line trigger is "any component
+carries an annotation" (or the line doesn't fit), not "there's more than one
+component." A record with a single annotated component still breaks: the
+annotation on its own line above the component, the closing `)` on its own
+line, and the body's braces on their own Allman line even when the body is
+empty:
+
+```java
+record GenerateRequest(
+  @Schema(description = "The opaque subject id the issued token pair will identify - not resolved, validated, or stored by this service")
+  String id
+)
+{}
+```
+
+Not `) {}` on one line — the empty body still gets its own opening/closing
+brace line, same as every other Allman-braced construct on this page.
+
 ## Fluent / stream chains
 
 Break before each `.` in a chain, indent the continuation +2:
