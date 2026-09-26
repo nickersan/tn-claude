@@ -651,12 +651,12 @@ split now captured in `standards/spring-boot/README.md` (design.md Decision
       `api`-interface / `controllers`-implementation split as 8.3; verify
       `/v3/api-docs` still describes every endpoint correctly and the
       generated contract tests still pass
-- [ ] 8.8 Update both services' Java DSL contract tests and OpenAPI docs to
-      describe the new shapes (`tn-auth-service`'s id/claims request bodies;
-      `tn-user-service`'s two-column identifier shape and the new link
-      endpoint); verify the generated contract tests pass against the
-      reworked implementation, not the pre-rework `.java` contract files left
-      unchanged
+- [ ] 8.8 Update `tn-user-service`'s Java DSL contract tests and OpenAPI docs
+      to describe the new shapes (the two-column identifier shape and the new
+      link endpoint — `tn-auth-service`'s own contracts/docs were already
+      updated as part of 8.1/8.3); verify the generated contract tests pass
+      against the reworked implementation, not the pre-rework `.java`
+      contract files left unchanged
 - [ ] 8.9 Re-run the existing find-or-create concurrency test
       (`UserRepositoryFindOrCreateConcurrencyIntegrationTest`, adapted to the
       two-column shape) and add one for 8.5's identifier-link; verify the
