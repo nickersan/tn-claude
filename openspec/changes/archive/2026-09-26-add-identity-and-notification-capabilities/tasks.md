@@ -529,16 +529,25 @@ planned), plus OpenAPI, Java contracts, and PostgreSQL/Testcontainers.
 
 ## 7. tn-claude records
 
-- [ ] 7.1 Update `catalog.yaml`: move the four services' entries from
+- [x] 7.1 Update `catalog.yaml`: move the four services' entries from
       `requested_changes`/`status: requested` to reflecting the archived contract;
       verify the entries link to `openspec/specs/<service>/spec.md`
 
-  Not done yet, deliberately — this task means the *archived* contract
-  (`spec:` pointing at the permanent `openspec/specs/<service>/spec.md`,
-  replacing `spec_change:`), which only exists once 7.4 archives the change,
-  which itself waits on 5.6 (see below). Doing this now would mean pointing
-  at a spec.md that doesn't exist yet at that path. Left unchecked rather than
-  faked.
+  Done immediately after 7.4 archived the change (in the same pass, since
+  this task's own `spec:` targets only exist once that lands): all four
+  entries now carry `spec: openspec/specs/<service>/spec.md` in place of
+  `spec_change: add-identity-and-notification-capabilities`; the two
+  `requested_changes` blocks (`tn-auth-service`, `tn-user-service`) removed,
+  resolved; `tn-notification-service` moved `status: requested` → `active`.
+  Summaries rewritten to describe the shipped shape, not the original ask —
+  `tn-auth-service`'s no longer mentions an Identifier concept at all (it has
+  none), `tn-user-service`'s describes the email/phone columns and the
+  create/update-not-link editing model, `tn-notification-service`'s notes the
+  stub channels and that a real provider is a separate, not-yet-requested
+  change. `registry.yaml`'s notes for both services updated to match, and its
+  `tn-notification-service` note's task-5.6 cross-reference reworded now
+  that `tasks.md` lives under `openspec/changes/archive/`, not a live change
+  directory.
 - [x] 7.2 Add/confirm `registry.yaml` entries, including `tn-notification-service`
       moving from `status: planned` to `active`, and the `groupId` fixes from §2.2;
       verify against the actual repos
@@ -554,16 +563,17 @@ planned), plus OpenAPI, Java contracts, and PostgreSQL/Testcontainers.
       `pom-style.md` `<repositories>` skeleton (finding 8, resolved in 2.6), and a
       `logging/README.md` cross-reference to `PropertyLogger` (finding 5) — all
       three done directly rather than left as tasks
-- [ ] 7.4 Archive this change (`openspec archive
+- [x] 7.4 Archive this change (`openspec archive
       add-identity-and-notification-capabilities`) once 1–6 and 8 are done;
       verify `openspec validate --specs` passes afterwards
 
-  Not done — sections 1, 2, 3, 4, 6, and 8 are now fully complete; section 5
-  is complete except 5.6 (a real email/SMS provider), which is deliberately
-  open pending a provider decision, not an oversight. This task's own wording
-  means archiving now, with 5.6 still open, would be premature — left for a
-  follow-up once a provider is chosen, unless the requester decides to archive
-  with 5.6 left as a known gap for a later change.
+  Archived with 5.6 (a real email/SMS provider for `tn-notification-service`)
+  deliberately left undone — direct requester decision, not an oversight or a
+  silent gap: sections 1, 2, 3, 4, 6, and 8 are fully complete, and 5 is
+  complete except 5.6, which stays open as a known gap for a later change
+  rather than blocking archival of everything else. `StubEmailChannel`/
+  `StubSmsChannel` remain the real, in-use implementation until that later
+  change picks a provider.
 
 ## 8. Generic token service + identity ownership in tn-user-service (design.md Decisions 17-22)
 

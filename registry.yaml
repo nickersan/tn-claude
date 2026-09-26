@@ -65,8 +65,9 @@ components:
     groupId: com.tn.service
     repo: tn-auth-service
     notes: >-
-      JWT session issuance, keyed by a generic Identifier (email or phone) as of
-      the add-identity-and-notification-capabilities change. Supersedes
+      Generic token/session service as of the add-identity-and-notification-
+      capabilities change (archived) — mints/refreshes a JWT for an opaque
+      subject id, no identifier/account/user concept of its own. Supersedes
       tn-oauth-service.
 
   - name: tn-auth-service-container
@@ -87,10 +88,12 @@ components:
     groupId: com.tn.service
     repo: tn-user-service
     notes: >-
-      Profile, keyed by a generic Identifier (email or phone) as of the
-      add-identity-and-notification-capabilities change. Own hand-written
-      controller (REST CRUD + POST /v1/actions/find-or-create), replacing
-      tn-data-service's generic DataController.
+      Profile and identity anchor as of the add-identity-and-notification-
+      capabilities change (archived) — email/phone as individually-unique,
+      nullable columns; its own id is the stable id used everywhere once a
+      user is authenticated. Own hand-written controller (REST CRUD +
+      POST /v1/actions/find-or-create), replacing tn-data-service's generic
+      DataController.
 
   - name: tn-user-service-container
     type: java-service-container
@@ -113,8 +116,10 @@ components:
       Stateless — no PostgreSQL/Testcontainers dependency, unlike the other
       services this change touched. The two channel implementations shipped
       (StubEmailChannel, StubSmsChannel) are deliberate placeholders: no real
-      email/SMS provider is wired in yet (tasks.md 5.6, still open — the
-      provider choice was deferred by explicit user direction, not decided).
+      email/SMS provider is wired in yet (task 5.6 of the now-archived
+      add-identity-and-notification-capabilities change, deliberately left
+      open — the provider choice was deferred by explicit user direction,
+      not decided, and archiving the rest of that change doesn't resolve it).
       Requested by okayat-platform / initial-capabilities. See catalog.yaml.
 
   - name: tn-notification-service-container

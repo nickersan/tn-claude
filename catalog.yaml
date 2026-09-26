@@ -49,49 +49,51 @@ capabilities:
     repo: tn-temporary-token-service
     api: POST /v1/generate, POST /v1/verify, GET (lookup)
     status: active
-    spec_change: add-identity-and-notification-capabilities
+    spec: openspec/specs/tn-temporary-token-service/spec.md
 
   - id: tn-auth-service
     kind: service
     summary: >-
-      Mints JWT access/refresh token pairs. Currently keyed only to an `Email`
-      domain object (auto-created on first use, claimed as `email` in the JWT) —
-      no non-email identifier exists yet. Supersedes tn-oauth-service (deprecated,
-      same code under the `com.tn.oauthservice` package / `pilch.oauth-service.*`
+      Generic token/session service: mints and refreshes a JWT access/refresh
+      token pair for an opaque subject id — no identifier, account, or user
+      concept of its own. Every other claim (issuer, issued-at, expiration, a
+      fresh per-token TSID as `jti`) is this service's own to add, never
+      caller-supplied. Resolving an identifier to a stable id is entirely
+      `tn-user-service`'s job. Supersedes tn-oauth-service (deprecated, same
+      code under the `com.tn.oauthservice` package / `pilch.oauth-service.*`
       properties).
     repo: tn-auth-service
     api: POST /v1/generate, POST /v1/refresh
     status: active
-    spec_change: add-identity-and-notification-capabilities
-    requested_changes:
-      - id: generalise-identifier
-        summary: Generalise from Email-only to a generic Identifier (EMAIL | PHONE).
-        requested_by: okayat-platform / initial-capabilities
-        tracked_by: tn-claude openspec/changes/add-identity-and-notification-capabilities
+    spec: openspec/specs/tn-auth-service/spec.md
 
   - id: tn-user-service
     kind: service
     summary: >-
-      User profile (email, fullName, preferredName, tokenSubject). `email` is
-      `@NotNull @Email unique` — no phone field.
+      User profile and identity anchor. `email`/`phone` are individually
+      unique, nullable columns — at most one of each per user, more than one
+      linkable to the same user. Its own id is the stable id used everywhere
+      once a user is authenticated, including the subject `tn-auth-service`
+      mints a session for. Create/update take the same shape (email, phone,
+      fullName, preferredName, no id) either way — linking or changing an
+      identifier is just an update, not a separate action.
     repo: tn-user-service
+    api: >-
+      GET/POST/PUT/DELETE /v1/users, POST /v1/actions/find-or-create
     status: active
-    spec_change: add-identity-and-notification-capabilities
-    requested_changes:
-      - id: generalise-identifier
-        summary: Add a phone identifier alongside email, consistent with tn-auth-service's generalisation.
-        requested_by: okayat-platform / initial-capabilities
-        tracked_by: tn-claude openspec/changes/add-identity-and-notification-capabilities
+    spec: openspec/specs/tn-user-service/spec.md
 
   - id: tn-notification-service
     kind: service
     summary: >-
-      Dispatch a message (e.g. an OTP) to an email address or phone number, behind
-      one send interface. Does not exist yet.
+      Dispatch a message (e.g. an OTP) to an email address or phone number,
+      behind one send interface. Stub email/SMS channels only (log in the
+      clear, for manual testing) — a real provider is a separate, later
+      change, not yet requested.
     repo: tn-notification-service
-    status: requested
-    requested_by: okayat-platform / initial-capabilities
-    spec_change: add-identity-and-notification-capabilities
+    api: POST /v1/actions/send-notification
+    status: active
+    spec: openspec/specs/tn-notification-service/spec.md
 
   # Services present in the tn layer but not yet catalogued in detail:
   #   tn-service, tn-data-service(-jdbc/-jpa), tn-directory-service,
