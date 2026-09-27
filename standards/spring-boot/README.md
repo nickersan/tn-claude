@@ -220,6 +220,87 @@ Use this pattern sparingly — most operations genuinely are resource CRUD, and
 shape. If a service accumulates several action endpoints, that's a signal to
 look again at whether it's still the right service boundary.
 
+**An action on one specific resource, or on one of its collections, hangs off
+that resource: `POST /v1/<resource>/{id}[/<collection>]/actions/<name>`.** The
+top-level `/v1/actions/` is only for operations that don't belong to one resource
+(a find-or-create, sending a passcode). For example:
+
+```
+GET  /v1/locations/{id}/followers                  list the collection
+POST /v1/locations/{id}/followers/actions/add      the caller follows
+POST /v1/locations/{id}/followers/actions/remove   the caller unfollows
+GET  /v1/locations/{id}/admins
+POST /v1/locations/{id}/admins/actions/add         body: {"userId": ...}, another user
+POST /v1/locations/{id}/admins/actions/remove      body: {"userId": ...}
+POST /v1/locations/{id}/actions/rollback           body: {"revision": ...}
+```
+
+Listing a collection stays a plain `GET`. In a public API, changing one goes through
+named actions rather than `PUT`/`DELETE` on a member path (`.../followers/{userId}`),
+because the member is usually the caller, who mustn't be named in the request (below).
+
+**Public APIs never carry the caller's own identity.** In an API a client calls
+directly (a BFF), who is calling comes from the bearer token's subject, and nothing
+else. An action applied to the caller (following a location) has no user id in its
+path or body at all. A user id appears only when it names a *different* user, e.g.
+the user being made an administrator, and then in the body. This keeps a client
+from acting as someone else by changing an id.
+
+**Internal (service-to-service) APIs use plain member resources instead.** Behind a
+BFF, the member is simply named in the path:
+
+```
+PUT    /v1/locations/{id}/followers/{userId}   idempotent add
+DELETE /v1/locations/{id}/followers/{userId}   idempotent remove
+PUT    /v1/locations/{id}/admins/{userId}
+DELETE /v1/locations/{id}/admins/{userId}
+```
+
+The acting user still travels separately, as a delegate user token (below), so
+authorization ("is the caller an administrator?") keeps working. Where only the
+user themselves may change a membership (following), the service rejects a path
+user who isn't the token's subject with 403, which costs one comparison.
+
+## Delegated calls — pass the user's token, never a user id
+
+**A service calling another on a user's behalf passes that user's access token in
+`X-Delegate-User-Token`** (the raw JWT, no `Bearer ` prefix;
+`com.tn.service.security.DelegateUserToken.HEADER`). The receiving service
+identifies the user only by verifying the token with `tn-service`'s
+`AccessTokenVerifier`. It checks the signature, expiry, issuer and
+`token_use` = `access`. `subjectRequired(token)` returns the user, and
+`subject(token)` returns an `Optional` for the rare caller that can do without one.
+An invalid token, or a missing subject where one is required, is a 401
+(`InvalidAccessTokenException`).
+
+Nothing is auto-configured. The service declares the verifier bean itself, from
+`tn-auth-service`'s public key (base64 X.509) and issuer. The key and issuer are the
+same for every service in a project, so they're project-level properties,
+`<project>.access-token.public-key` and `<project>.access-token.issuer`, declared
+once and used by each service that verifies tokens:
+
+```java
+@Bean
+AccessTokenVerifier accessTokenVerifier(
+  @Value("${okayat.access-token.public-key}")
+  String publicKey,
+  @Value("${okayat.access-token.issuer}")
+  String issuer
+)
+  throws NoSuchAlgorithmException, InvalidKeySpecException
+{
+  return new AccessTokenVerifier(publicKey, issuer);
+}
+```
+
+**Never accept a user id asserted in a header** (`X-User-Id` and the like). The
+receiving service can't tell a real one from a forged one, so anything that can
+reach it could act as any user. A verified token proves who the user is.
+
+A call with no user (an anonymous read) simply omits the header. An endpoint that
+needs a user returns 401 when the header is missing or its token fails
+verification.
+
 ## Pagination — Spring Data's native `Pageable`, not a hand-rolled scheme
 
 **Don't reinvent pagination query params.** `tn-data-service` currently does —

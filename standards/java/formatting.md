@@ -218,3 +218,5 @@ Node/AST types use a `TEMPLATE_TO_STRING` constant with `String.format` (see
 - UTF-8. Non-ASCII characters in string/enum literals are acceptable (`≈`, `∈` appear
   in `tn-query`).
 - End every file with a single newline.
+- No trailing whitespace, including on blank lines. A blank line is empty, not
+  indented. Configure the IDE to strip trailing whitespace on save.

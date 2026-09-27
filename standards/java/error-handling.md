@@ -27,6 +27,39 @@
 - Use JDK exceptions for genuine programming errors:
   `IllegalArgumentException` for a bad argument, `IllegalStateException` for an
   impossible state (`"Failed to find: " + CREATE_TABLE_SCRIPT`).
+- **The exception's class name carries its meaning.** A caller should be able to tell
+  what went wrong from the type alone, without inspecting a status code, a field, or
+  the message. Don't throw one generic exception and distinguish cases by a value
+  inside it:
+
+  ```java
+  // not: DownstreamStatusException carrying a 429 that each caller must check for
+  throw new TokenGenerationThrottledException(owner);
+  ```
+
+  A generic exception is still right where the case genuinely doesn't matter to any
+  caller, e.g. a proxy passing a downstream 4xx through unchanged.
+
+## Declaring what a method throws
+
+**A public method declares, in its `throws` clause, the domain exceptions it
+deliberately throws, unchecked ones included.** Private methods may, where it helps
+the reader. The signature is the method's contract, where the
+compiler, the IDE and a reader all see it. Don't describe them in Javadoc `@throws`
+instead:
+
+```java
+public UserSession verifyPasscode(Identifier identifier, String passcode) throws UnauthenticatedException
+```
+
+- Declare only exceptions the method throws on purpose, as part of its behaviour. Not
+  every runtime exception something beneath it might raise.
+- Because the exception's name carries its meaning (above), a `throws` clause needs no
+  Javadoc to explain it. Add Javadoc only for what neither the signature nor the names
+  can say.
+- REST endpoints are the exception to the rule: their error contract is the HTTP
+  statuses documented with `@ApiResponse` on the `api` interface
+  (`../spring-boot/README.md`), not a `throws` clause.
 
 ## Messages
 

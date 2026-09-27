@@ -22,21 +22,61 @@ ComparisonNode parse(@Nonnull String queryPart) throws QueryParseException
 {
   if (!matches(queryPart)) throw new IllegalArgumentException("Unmatched query: " + queryPart);
 
-  String[] tokens = queryPart.split(this.symbol);
+  String[] tokens = queryPart.split(symbol);
   if (tokens.length != EXPECTED_TOKENS) throw new QueryParseException("Invalid query part: " + queryPart);
 
-  return this.nodeFactory.apply(tokens[INDEX_LEFT].trim(), tokens[INDEX_RIGHT].trim());
+  return nodeFactory.apply(tokens[INDEX_LEFT].trim(), tokens[INDEX_RIGHT].trim());
 }
 ```
 
 Ternaries — including nested ones — are used freely for value selection. Keep each
 branch simple.
 
-## `this.` for field access
+## No `this.` unless it's required
 
-Qualify instance field and instance method access with `this.` in classes that hold
-state (`this.mappers`, `this.predicateFactory`, `this.queryParser`). Apply it
-consistently within a class.
+Access fields and call instance methods without `this.` (`mappers`,
+`predicateFactory.parenthesis(...)`). Use `this.` only where the language needs it,
+which is where a parameter or local shadows a field:
+
+```java
+public Tag(String name)
+{
+  this.name = name;
+}
+
+public void replaceTags(Collection<Tag> tags)
+{
+  this.tags.clear();
+  this.tags.addAll(tags);
+}
+```
+
+Take care when removing `this.` from existing code. Where a parameter shadows the
+field, `tags.addAll(tags)` still compiles, but it reads the parameter twice and
+silently leaves the field alone. Check every method with a parameter named like a
+field before removing a qualifier from it. (This reverses the earlier rule, distilled
+from `tn-lang`/`tn-query`, of qualifying every field access. Existing code is brought
+into line as it's next touched.)
+
+## Composed methods
+
+A public method should read as the steps of the operation it performs. Give each step
+that's more than a single self-explanatory call its own private method, named in the
+domain's vocabulary, for what it achieves rather than how:
+
+```java
+public void requestPasscode(Identifier identifier)
+{
+  String passcode = generatePasscode(identifier);
+  sendPasscodeNotification(identifier, passcode);
+
+  log.info("Passcode sent", kv("identifierType", identifier.type()));
+}
+```
+
+`generatePasscode`, not `generate` or `callTokenService`. A reader should understand the
+public method without opening the private ones, and each private method should do the
+one thing its name says.
 
 ## Immutability
 
@@ -85,6 +125,14 @@ remove a cast — but match the surrounding method's style when editing existing
 - `Optional` is used as a **stream/pipeline** result
   (`findFirst().map(...).orElseThrow(...)`), not stored in fields or accepted as a
   parameter.
+- A public method whose result can legitimately be absent returns `Optional`, never
+  `null`. When callers usually need the value, add a companion method that throws
+  a meaningfully named exception instead, e.g.
+  `AccessTokenVerifier.subject(token)` returns `Optional<String>`, and
+  `subjectRequired(token)` throws `InvalidAccessTokenException("no subject")`.
+  The companion keeps the base name and adds `Required` as a suffix
+  (`subjectRequired`, not `requiredSubject`), so code completion shows the two
+  together.
 - Internal helper methods may return `null` as a "not applicable" signal when the
   caller immediately filters it (`ValueMappers.toMapper` returns `null`, then
   `.filter(Objects::nonNull)`). Keep this local and obvious; do not leak nullable

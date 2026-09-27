@@ -98,7 +98,21 @@ capabilities:
     status: active
     spec: openspec/specs/tn-notification-service/spec.md
 
+  - id: tn-service
+    kind: library
+    summary: >-
+      Shared service-level setup (request logging, property logging) and
+      tn-auth-service access-token verification (signature, expiry, issuer,
+      `token_use` = `access`) - `AccessTokenVerifier`, which a service creates
+      itself from the public key and issuer. Defines `X-Delegate-User-Token`,
+      the header in which a service passes a user's access token to another
+      service acting on that user's behalf.
+    artifact: com.tn.service:tn-service
+    repo: tn-service
+    contract: n/a (plain library)
+    spec: openspec/specs/tn-service/spec.md
+
   # Services present in the tn layer but not yet catalogued in detail:
-  #   tn-service, tn-data-service(-jdbc/-jpa), tn-directory-service,
+  #   tn-data-service(-jdbc/-jpa), tn-directory-service,
   #   tn-element-service, tn-file-service, tn-storage-service, tn-cli,
   #   tn-client-feign
