@@ -335,7 +335,9 @@ spring:
 
 - **Not Feign.** Spring Cloud OpenFeign is feature-complete, and it pulls in the
   Spring Cloud release train for something Spring Framework 7 and Boot 4 now do
-  natively, backed by the same `RestClient`.
+  natively, backed by the same `RestClient`. Feign must not be used in new or
+  changed code. `tn-client-feign` and the Feign dependencies still managed in
+  `tn-parent` are kept for reference only.
 - **Not hand-written `RestClient` calls.** They repeat URI building, headers and
   body handling in every method, and `body(...)` returns a nullable value that
   every caller then has to guard.

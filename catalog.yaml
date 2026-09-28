@@ -112,7 +112,17 @@ capabilities:
     contract: n/a (plain library)
     spec: openspec/specs/tn-service/spec.md
 
+  - id: tn-client-feign
+    kind: library
+    summary: >-
+      OpenFeign client support (a 404-to-Optional aspect, auto-configuration).
+      Deprecated: kept for reference only. Feign must not be used. New HTTP
+      clients are @HttpExchange interfaces, per standards/spring-boot/README.md
+      ("HTTP clients").
+    artifact: com.tn.client:tn-client-feign
+    repo: tn-client-feign
+    status: deprecated
+
   # Services present in the tn layer but not yet catalogued in detail:
   #   tn-data-service(-jdbc/-jpa), tn-directory-service,
-  #   tn-element-service, tn-file-service, tn-storage-service, tn-cli,
-  #   tn-client-feign
+  #   tn-element-service, tn-file-service, tn-storage-service, tn-cli
