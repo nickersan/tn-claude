@@ -301,6 +301,64 @@ A call with no user (an anonymous read) simply omits the header. An endpoint tha
 needs a user returns 401 when the header is missing or its token fails
 verification.
 
+## HTTP clients — `@HttpExchange` interfaces, not Feign or hand-written calls
+
+**Call another service through a Spring HTTP interface**: an interface in the
+consumer's `client` package, its methods annotated `@GetExchange`,
+`@PostExchange`, `@PutExchange`, `@DeleteExchange` and so on. Register it with
+`@ImportHttpServices`, one group per downstream service, and set the group's base
+URL in configuration:
+
+```java
+@HttpExchange("/v1/locations")
+public interface LocationServiceClient
+{
+  @GetExchange("/{id}")
+  Location get(@PathVariable long id);
+
+  @PutExchange("/{id}/followers/{userId}")
+  void follow(@RequestHeader(DelegateUserToken.HEADER) String delegateUserToken, @PathVariable long id, @PathVariable long userId);
+}
+
+@Configuration
+@ImportHttpServices(group = "location-service", types = LocationServiceClient.class)
+class ClientConfiguration {}
+```
+
+```yaml
+spring:
+  http:
+    serviceclient:
+      location-service:
+        base-url: ${LOCATION_SERVICE_URL:http://localhost:8093}
+```
+
+- **Not Feign.** Spring Cloud OpenFeign is feature-complete, and it pulls in the
+  Spring Cloud release train for something Spring Framework 7 and Boot 4 now do
+  natively, backed by the same `RestClient`.
+- **Not hand-written `RestClient` calls.** They repeat URI building, headers and
+  body handling in every method, and `body(...)` returns a nullable value that
+  every caller then has to guard.
+- **Errors come from `RestClient`'s own exceptions**, whose class names already
+  carry the status: `HttpClientErrorException.NotFound`,
+  `HttpClientErrorException.TooManyRequests`, `HttpServerErrorException` and so
+  on. The caller catches the one that means something to it and translates it
+  into its own meaningfully named exception (a 429 from a token service becomes
+  `PasscodeThrottledException`). Declare those exceptions in the interface
+  method's `throws` so the caller can see them. For group-wide behaviour
+  (timeouts, a shared error mapping), use a `RestClientHttpServiceGroupConfigurer`
+  bean, not per-call code.
+- **Return the body type the API promises.** Where the API allows no body (for
+  example, a lookup that can find nothing without it being an error), return
+  `Optional<T>`, which HTTP interfaces support directly. Never return `null` for
+  "absent" (see `standards/java/idioms.md`).
+- **The delegate user token is a parameter**, `@RequestHeader(value =
+  DelegateUserToken.HEADER, required = false)` where anonymous calls are allowed,
+  and required otherwise.
+- **Don't share the producer's API interface.** The consumer declares its own
+  interface and records, so the two services build independently. The producer's
+  contracts, run against the consumer through the stub runner, catch any drift.
+
 ## Pagination — Spring Data's native `Pageable`, not a hand-rolled scheme
 
 **Don't reinvent pagination query params.** `tn-data-service` currently does —

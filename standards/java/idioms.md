@@ -151,10 +151,25 @@ remove a cast — but match the surrounding method's style when editing existing
 - For "run something around" logic, use the `tn-lang` `Then` helper
   (`beforeThen` / `thenAfter` / `beforeThenAfter`) rather than ad-hoc try/finally.
 
+## Lombok — use it wherever it's available
+
+Where a module has Lombok on its classpath (tn-parent manages it, and every service
+and most libraries have it), use it instead of writing boilerplate by hand:
+- A class that's never instantiated (static helpers, constants):
+  `@NoArgsConstructor(access = AccessLevel.PRIVATE)`, not `private Foo() {}`.
+- Constructors that only assign fields: `@AllArgsConstructor` or
+  `@RequiredArgsConstructor`.
+- `equals`/`hashCode`/`toString`: `@EqualsAndHashCode`/`@ToString`. Prefer a
+  `record` when the type is plain data.
+- Loggers: `@Slf4j`.
+
+Hand-write only where Lombok isn't on the classpath, or where the generated form
+would be wrong (for example, `equals` over a subset of fields that Lombok's
+annotations can't express cleanly).
+
 ## equals / hashCode / toString
 
-Hand-written in these libraries (Lombok is available via the parent and used in
-services, but the core libs write them out).
+Where written by hand (modules without Lombok, or the exceptions above):
 
 - `equals` pattern: identity check, then `getClass()` equality (not `instanceof`), then
   field-by-field `Objects.equals`:
