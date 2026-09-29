@@ -20,9 +20,15 @@ own framework standard (`react/`). The reference implementation is `okayat-clien
 
 `strict`, plus `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`,
 `noImplicitOverride`, `isolatedModules` and `verbatimModuleSyntax`. Target
-`ES2022`, `module: ESNext` with `moduleResolution: Bundler`: packages are consumed
-by bundlers (Vite, Metro), not by Node directly. A separate `tsconfig.build.json`
-emits `dist` with declarations and source maps.
+`ES2022`. Module resolution depends on what the code is:
+- **A published library:** `module` and `moduleResolution: NodeNext`, so relative
+  imports carry `.js` extensions and `dist` loads in Node as well as in bundlers.
+  Consumers' test runners (Vitest) load dependencies through Node, so a library
+  built with `Bundler` resolution breaks them. A separate `tsconfig.build.json`
+  emits `dist` with declarations and source maps, and `verify` ends by importing
+  `dist` in plain Node (`scripts/check-dist.mjs`).
+- **An app** (`react-web`, `native-ui`), which only its own bundler reads:
+  `module: ESNext` with `moduleResolution: Bundler`.
 
 ## Layout — the same as tn's Java
 
