@@ -111,6 +111,15 @@ types:
     applies:
       - conventions
 
+  local-environment:
+    description: >-
+      Runs one project's services on a developer's machine for manual testing and
+      debugging: Docker Compose, key generation, image builds and IDE run
+      configurations. Owns no production code and isn't deployed. Example:
+      okayat-local.
+    applies:
+      - conventions
+
   database-schema:
     description: >-
       A component whose deliverable is a database schema and its migrations.

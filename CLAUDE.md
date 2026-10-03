@@ -33,6 +33,10 @@ It contains no production code. Do not add application logic here.
   not remain its source of truth.** Once a change in this tree is archived, update
   the requesting project's design.md to reference it instead of restating the
   contract (see that repo's own notes).
+- **The code documents the system; the specs keep what it can't.** Archiving distils
+  the master specs it updates rather than copying the change in, and scenarios are
+  captured as tests (`standards/conventions/README.md`; `openspec/config.yaml`
+  carries the matching rules and archive guidance).
 
 ## Scope of the current draft
 

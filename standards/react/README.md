@@ -41,6 +41,14 @@ libraries; this file covers what's React-specific. The reference implementation 
   right (e.g. whether a new item matches a search).
 - **After a change, update or invalidate what it affects**, including history and
   lists that depend on it.
+- **Connection failures are one app-wide banner; other errors sit beside what
+  failed.** The query and mutation caches report every outcome to a connection
+  status. Not reaching the BFF, or a 502, 503 or 504 from it, shows the banner, and
+  the next success clears it. While it shows, every operation on the page is
+  disabled (the content sits in a disabled `fieldset`), so it can't be dismissed:
+  it's what explains why. Screens show errors through `ErrorMessage`, which stays
+  silent for connection failures, so the same failure isn't repeated in several
+  places.
 - **Anything platform-specific is injected**, as in the client.
 
 ## Styling

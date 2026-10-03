@@ -26,24 +26,18 @@ context: |
   requesting project's own design.md should stop being the source of truth for tn
   behaviour and reference this instead.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+# Documentation follows tn-claude/standards/conventions/README.md: the code documents the system, scenarios live
+# in tests, and archiving keeps the master spec set minimal.
+rules:
+  specs:
+    - State requirements as short statements of behaviour; leave out what the code will say (paths, field lists, step-by-step flows)
+    - Write each scenario so it can become a test named for it
+  tasks:
+    - Verify each scenario with a test whose name reads as that scenario
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+operations:
+  archive:
+    guidance:
+      - Treat archiving as distilling, not copying. After the merge, revise the master specs it touched (openspec/specs/...) to keep only what the code and tests cannot say - the why behind each rule and the alternatives rejected, rules and guarantees that span components, domain meaning and boundaries, what is out of scope or deferred, and lessons from implementation
+      - Keep requirements as short statements of behaviour; keep a scenario only where it pins down a rule the tests do not make obvious, and drop any that just restate a test
+      - Change only the documents this archive updates. Leave the archived change folder as the historical record, keep system-level documents at system level, and do not rework specs archived earlier
