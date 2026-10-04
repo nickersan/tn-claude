@@ -95,6 +95,17 @@ types:
       - conventions
       - typescript
 
+  react-library:
+    description: >-
+      React hooks and plain logic shared by a project's react-web and native-ui
+      components: services and their context, data hooks, validation. Depends on
+      React and its data library, never on react-dom or React Native. Example:
+      okayat-app.
+    applies:
+      - conventions
+      - typescript
+      - react
+
   typescript-client-library:
     description: >-
       A framework-agnostic TypeScript package, typically capturing what a BFF
