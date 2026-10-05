@@ -81,10 +81,24 @@ types:
 
   react-web:
     description: >-
-      A React single-page or server-rendered web UI, deployed to Kubernetes.
+      A React single-page or server-rendered web UI. Produces a static build
+      only — serving it is the job of a paired `<name>-container` repo (type
+      `web-container`). Don't add a Dockerfile here.
     applies:
       - conventions
       - react
+      - kubernetes
+
+  web-container:
+    description: >-
+      Packages a react-web component's build into a Docker image that serves it
+      (nginx) and proxies its API path to the project's BFF, so the browser talks
+      to one origin. The BFF's address comes from the environment, not the
+      image. Always a separate repo from the web UI (`<name>-container`, e.g.
+      `okayat-web-container` for `okayat-web`), paired the same way as
+      java-service-container.
+    applies:
+      - conventions
       - kubernetes
 
   native-ui:

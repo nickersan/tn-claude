@@ -1,6 +1,6 @@
 # Kubernetes standard
 
-Applies to `java-service-container` (what gets deployed) and
+Applies to `java-service-container` and `web-container` (what gets deployed) and
 `kustomize-deployment` (how it's deployed) components. Distilled from `pilch`'s
 existing `kustomize/` + `*-container` repos — the working pattern this layer
 inherits, not a fresh design.
@@ -10,6 +10,11 @@ inherits, not a fresh design.
 - Each deployable `java-spring-service` has a paired **`<name>-container`** repo
   that builds its Docker image — see `../maven/build-and-ci.md`. The image name
   is the bare service name (`oauth-service`, `tn-temporary-token-service`, ...).
+- Each `react-web` UI likewise has a **`<name>-container`** repo (`web-container`)
+  that builds an nginx image serving it. nginx also proxies the API path to the
+  BFF, so the browser talks to one origin and needs no CORS. The BFF's URL comes
+  from the base ConfigMap at startup (nginx's `envsubst` templates), so one image
+  runs in every environment. Its `/noop` answers from nginx itself.
 - One **`kustomize-deployment`** repo per project (e.g. `okayat-kustomize`) holds
   the manifests for everything that project deploys — its own components *and*
   the tn-layer components it depends on. tn itself doesn't own one; it has no
@@ -68,19 +73,35 @@ kustomize/
   writes to the persisted volume — now the Postgres deployment, not each service.
   `h2` is no longer a dependency of the container repos that made this switch
   (see `../maven/build-and-ci.md`) — don't carry it forward into new ones.
-- Secrets/keys a service needs locally (e.g. JWT signing keys) go in an
-  overlay-only `ConfigMap` (`config-local.yaml` today — a `Secret` would be the
-  better primitive for real key material, worth revisiting) referenced via
-  `valueFrom.configMapKeyRef` in the deployment patch, using the
-  SCREAMING_SNAKE_CASE form of the Spring property
-  (`FOO_BAR_BAZ` → `foo.bar.baz`).
+- **Keys go in a `Secret`.** Anything a service needs locally that is key
+  material (e.g. JWT signing keys) comes from a `secretGenerator` in the overlay.
+  It reads an env file that a script in the repo generates and Git ignores, so
+  no key is committed. The deployment patch refers to it with
+  `valueFrom.secretKeyRef`, using the SCREAMING_SNAKE_CASE form of the Spring
+  property (`FOO_BAR_BAZ` → `foo.bar.baz`). Kustomize gives the Secret a
+  content-hash suffix and rewrites the references, so new keys roll the pods.
+  This replaces the earlier overlay-only `ConfigMap`. Settings that aren't
+  secret still go in ConfigMaps.
+- **Services wait for the overlay's Postgres.** Each Deployment that uses it gets
+  an `initContainer` that polls `pg_isready` against it, so a cold start doesn't
+  have to wait out a crash loop. This lives in the overlay, since a managed
+  database is up before anything deploys.
+- **Reaching services from outside the cluster:** add `type: LoadBalancer`
+  Services in the overlay, on ports that don't clash with the same services run
+  natively, rather than changing the base Services. Docker Desktop maps a
+  LoadBalancer Service to the host's port, including on the LAN.
+- **Images:** Docker Desktop's Kubernetes uses the images in the local Docker,
+  so the container repos' builds are deployable as they are. A rebuilt image
+  keeps its tag, so it needs a `kubectl rollout restart` to be picked up.
 - Non-local environments (staging, prod, ...) get their own overlay following the
   same shape; where a managed service replaces something local runs itself (RDS
   instead of the self-hosted Postgres deployment, a managed secrets store instead
-  of `config-local`), that substitution lives entirely in that overlay — base and
+  of the generated Secret), that substitution lives entirely in that overlay — base and
   the other overlays don't change. The point of running real Postgres locally too
   is that this substitution is the *only* difference — not database engine as
   well.
+
+The reference implementation is `okayat-kustomize`.
 
 ## Health probes
 
@@ -98,6 +119,5 @@ endpoint here.
 - Non-local overlay(s) — no example exists yet in either `pilch` or `tn`; write
   one distilled from a real environment when the first non-local deployment
   happens, don't guess its shape now.
-- `Secret` vs `ConfigMap` for real key material (noted above).
 - Resource requests/limits — not present in the `pilch` example; decide when
   sizing an environment for real.
