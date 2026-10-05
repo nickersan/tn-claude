@@ -75,7 +75,7 @@ produce numbers in either order. A single database sequence can't.
 A sequence orders revisions by when each transaction draws its number, not by
 when it commits. For one entity's history that's the same thing, as long as edits
 to the same entity are serialized (e.g. by locking the entity's row for the edit,
-as `okayat-location-service` does). That's the pattern to follow.
+as `okayat-spot-service` does). That's the pattern to follow.
 
 This applies only to the revision number. The audited entities themselves, and
 any other table, still use TSIDs. A revision number is an internal audit ordinal

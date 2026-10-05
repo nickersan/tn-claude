@@ -20,7 +20,7 @@ libraries; this file covers what's React-specific. The reference implementation 
 
 ## Structure
 
-- **Folders by feature** (`locations/`, `tags/`, `login/`), plus `app/`
+- **Folders by feature** (`spots/`, `tags/`, `login/`), plus `app/`
   (services, query keys, error text), `session/`, `shell/` and `components/` for
   shared parts. A feature's page, hooks and pure logic (validation, cache patches)
   sit together, with the pure logic in plain `.ts` files.

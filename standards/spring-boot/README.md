@@ -226,13 +226,13 @@ top-level `/v1/actions/` is only for operations that don't belong to one resourc
 (a find-or-create, sending a passcode). For example:
 
 ```
-GET  /v1/locations/{id}/followers                  list the collection
-POST /v1/locations/{id}/followers/actions/add      the caller follows
-POST /v1/locations/{id}/followers/actions/remove   the caller unfollows
-GET  /v1/locations/{id}/admins
-POST /v1/locations/{id}/admins/actions/add         body: {"userId": ...}, another user
-POST /v1/locations/{id}/admins/actions/remove      body: {"userId": ...}
-POST /v1/locations/{id}/actions/rollback           body: {"revision": ...}
+GET  /v1/spots/{id}/followers                  list the collection
+POST /v1/spots/{id}/followers/actions/add      the caller follows
+POST /v1/spots/{id}/followers/actions/remove   the caller unfollows
+GET  /v1/spots/{id}/admins
+POST /v1/spots/{id}/admins/actions/add         body: {"userId": ...}, another user
+POST /v1/spots/{id}/admins/actions/remove      body: {"userId": ...}
+POST /v1/spots/{id}/actions/rollback           body: {"revision": ...}
 ```
 
 Listing a collection stays a plain `GET`. In a public API, changing one goes through
@@ -241,7 +241,7 @@ because the member is usually the caller, who mustn't be named in the request (b
 
 **Public APIs never carry the caller's own identity.** In an API a client calls
 directly (a BFF), who is calling comes from the bearer token's subject, and nothing
-else. An action applied to the caller (following a location) has no user id in its
+else. An action applied to the caller (following a spot) has no user id in its
 path or body at all. A user id appears only when it names a *different* user, e.g.
 the user being made an administrator, and then in the body. This keeps a client
 from acting as someone else by changing an id.
@@ -250,10 +250,10 @@ from acting as someone else by changing an id.
 BFF, the member is simply named in the path:
 
 ```
-PUT    /v1/locations/{id}/followers/{userId}   idempotent add
-DELETE /v1/locations/{id}/followers/{userId}   idempotent remove
-PUT    /v1/locations/{id}/admins/{userId}
-DELETE /v1/locations/{id}/admins/{userId}
+PUT    /v1/spots/{id}/followers/{userId}   idempotent add
+DELETE /v1/spots/{id}/followers/{userId}   idempotent remove
+PUT    /v1/spots/{id}/admins/{userId}
+DELETE /v1/spots/{id}/admins/{userId}
 ```
 
 The acting user still travels separately, as a delegate user token (below), so
@@ -310,18 +310,18 @@ consumer's `client` package, its methods annotated `@GetExchange`,
 URL in configuration:
 
 ```java
-@HttpExchange("/v1/locations")
-public interface LocationServiceClient
+@HttpExchange("/v1/spots")
+public interface SpotServiceClient
 {
   @GetExchange("/{id}")
-  Location get(@PathVariable long id);
+  Spot get(@PathVariable long id);
 
   @PutExchange("/{id}/followers/{userId}")
   void follow(@RequestHeader(DelegateUserToken.HEADER) String delegateUserToken, @PathVariable long id, @PathVariable long userId);
 }
 
 @Configuration
-@ImportHttpServices(group = "location-service", types = LocationServiceClient.class)
+@ImportHttpServices(group = "spot-service", types = SpotServiceClient.class)
 class ClientConfiguration {}
 ```
 
@@ -329,8 +329,8 @@ class ClientConfiguration {}
 spring:
   http:
     serviceclient:
-      location-service:
-        base-url: ${LOCATION_SERVICE_URL:http://localhost:8093}
+      spot-service:
+        base-url: ${SPOT_SERVICE_URL:http://localhost:8093}
 ```
 
 - **Not Feign.** Spring Cloud OpenFeign is feature-complete, and it pulls in the
@@ -386,7 +386,7 @@ every skipped row); keyset pagination uses an indexed `WHERE` clause instead and
 stays fast at any depth, at the cost of no "jump to page N" and no total count.
 Not needed for a small/bounded dataset (a user-profile table, say) — worth
 reaching for on something users might actually scroll deep into (candidate:
-`locations/search`'s anonymous browse, if it ever needs to support that — not
+`spots/search`'s anonymous browse, if it ever needs to support that — not
 decided, see `okayat-platform`'s own design.md).
 
 ## Concurrency-safe find-or-create (and any other check-then-act operation)

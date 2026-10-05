@@ -177,8 +177,8 @@ Where the closing `"""` goes depends on whether the value is one logical line:
   ```java
   @Operation(
     summary = """
-      Server-sent events for every location change, from any instance: `location.created` or `location.updated`, \
-      each carrying the location's full representation (the same shape GET /v1/locations/{id} returns)"""
+      Server-sent events for every spot change, from any instance: `spot.created` or `spot.updated`, \
+      each carrying the spot's full representation (the same shape GET /v1/spots/{id} returns)"""
   )
   ```
 
@@ -189,9 +189,9 @@ Where the closing `"""` goes depends on whether the value is one logical line:
 
   ```java
   private static final String SQL_FOLLOW = """
-    INSERT INTO follow (follow_id, user_id, location_id, created)
-    VALUES (:id, :userId, :locationId, CURRENT_TIMESTAMP)
-    ON CONFLICT (user_id, location_id) DO NOTHING
+    INSERT INTO follow (follow_id, user_id, spot_id, created)
+    VALUES (:id, :userId, :spotId, CURRENT_TIMESTAMP)
+    ON CONFLICT (user_id, spot_id) DO NOTHING
     """;
   ```
 
