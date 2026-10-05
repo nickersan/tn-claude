@@ -50,6 +50,14 @@ kustomize/
   deployment needs; an RDS-backed overlay would instead inject
   `SPRING_DATASOURCE_URL` pointing at the RDS endpoint and no local database
   deployment at all. The base Deployment doesn't change either way.
+- **What several overlays share goes in a Component** (`components/<name>/`, `kind:
+  Component`) that each of them lists under `components:`, rather than one overlay
+  building on another. For example, `okayat-kustomize`'s `self-hosted` component
+  holds the Postgres deployment, the generated keys and the datasource patches,
+  and both its `local` and `acceptance` overlays use it.
+- **An overlay a test suite applies per run has no namespace of its own.** The
+  suite creates one per run and applies the overlay into it, so runs never share
+  data (`okayat-kustomize`'s `acceptance` overlay and `okayat-acceptance`).
 - **Image tags** are set once, in `base/kustomization.yaml`'s `images:` list —
   overlays never repeat them.
 - **Labels**: every environment's kustomization applies a distinguishing pair
