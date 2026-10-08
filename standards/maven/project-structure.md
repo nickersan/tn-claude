@@ -28,15 +28,15 @@ Every Java component POM declares:
 
 ## Versioning
 
-- Development versions are `MAJOR.MINOR.PATCH-SNAPSHOT`.
-- Releases are managed by **release-please** (`release-type: maven`): a
-  `release-please-config.json` and `.release-please-manifest.json` sit at the repo
-  root, and merging the release PR to `main` tags and publishes.
-- To force a specific release version, use the helper:
-  `set-version.cmd <version>` — it creates an empty commit with a
-  `Release-As: <version>` trailer.
-- Keep a `CHANGELOG.md` (release-please maintains it). Commit messages follow
-  Conventional Commits so the changelog and version bumps are derived correctly.
+- CI sets the version, never a person: each push to `main` with a `feat` or `fix`
+  since the last tag releases, and commits the new version back. So the pom on
+  `main` declares the last release, and there are no SNAPSHOTs (see
+  `build-and-ci.md`, GitHub Actions).
+- Depend on released versions only, e.g. a container repo's pin on its service jar,
+  which CI moves on with each release.
+- Commit messages follow Conventional Commits, since they decide the bump. The
+  release notes are generated on each GitHub release; a `CHANGELOG.md` from the
+  release-please days is history, no longer maintained.
 
 ## Source layout
 

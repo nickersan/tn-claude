@@ -40,13 +40,13 @@ generated POM.
   <parent>
     <groupId>com.tn</groupId>
     <artifactId>tn-parent</artifactId>
-    <version>2.2.0</version>
+    <version>3.0.0</version>
     <relativePath/>
   </parent>
 
   <groupId>com.tn.query</groupId>
   <artifactId>tn-query</artifactId>
-  <version>1.0.1-SNAPSHOT</version>
+  <version>1.0.0</version>
 
   <packaging>jar</packaging>
 

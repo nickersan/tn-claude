@@ -71,3 +71,10 @@ A client for a service's HTTP API:
 Published to GitHub Packages as `@nickersan/<name>`, with `.npmrc` mapping the
 scope to `https://npm.pkg.github.com`. `prepublishOnly` runs `verify`. Only `dist`
 is published (`files`).
+
+CI publishes, never a person: `main` is the only branch, and each push to it runs the
+shared `npm.yaml` workflow in [`nickersan/actions`](https://github.com/nickersan/actions)
+from the repo's `.github/workflows/build.yaml`. A `feat` or `fix` since the last tag
+bumps the version, commits it back, tags it and publishes; see that repo's README. A
+`react-web` app is published the same way (its dependencies are all `devDependencies`,
+since the build bundles them), so its `web-container` repo can pin a release.

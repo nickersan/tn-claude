@@ -12,8 +12,15 @@ Cross-cutting conventions that apply to every component regardless of technology
 - Documentation and ADR location.
 
 To be written. Where a rule already exists implicitly in `tn-lang` / `tn-query`
-(e.g. Conventional Commits, `develop` + `main` branch model, GitHub Packages), distil
-it from there rather than inventing.
+(e.g. Conventional Commits, GitHub Packages), distil it from there rather than
+inventing.
+
+## Branch model
+
+Trunk-based: `main` is the only branch, in every tn and okayat repo. Each push to it
+builds and, when there's a `feat` or `fix` since the last release, releases — see
+[`nickersan/actions`](https://github.com/nickersan/actions). Commit messages follow
+Conventional Commits, since they decide the version.
 
 ## The code documents the system
 

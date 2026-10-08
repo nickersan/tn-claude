@@ -25,7 +25,7 @@
 | `build-helper-maven-plugin` | Adds `src/it/java` and `src/ct/java` as test sources |
 | `versions-maven-plugin` | Ignores `-alpha` / `-beta` / `-rc` / `-m` when reporting updates |
 | `jacoco-maven-plugin` | Coverage: separate unit and integration exec files, merged report post-integration-test; excludes `**/Application.class` |
-| `maven-release-plugin` | Present; day-to-day releases go through release-please instead |
+| `maven-release-plugin` | Present but unused; releases are CI's job (see GitHub Actions) |
 
 ## Profiles (activated automatically by file presence)
 
@@ -80,24 +80,24 @@ deployed. Check `registry.yaml` before assuming one exists.
 
 ## GitHub Actions
 
-Each repo carries the same small set of workflows:
+**Trunk-based: `main` is the only branch**, and every push to it builds and, when the
+Conventional Commits since the last tag hold a `feat` or `fix`, releases. Each repo
+carries one `.github/workflows/build.yaml` that calls the shared `maven.yaml` workflow
+in [`nickersan/actions`](https://github.com/nickersan/actions), whose README says
+exactly what a push does. In short:
 
-| Workflow | Trigger | Action |
-|----------|---------|--------|
-| `deploy.yaml` | push to `develop` | `mvn --batch-mode deploy` |
-| `release.yaml` | GitHub release published | checkout the tag, `mvn --batch-mode deploy` |
-| `release-please.yml` | PR closed against `main` | run `googleapis/release-please-action@v4` (`target-branch: main`) |
-| `auto-merge.yaml` | PR labelled `autorelease: snapshot` | `gh pr merge --admin --squash` |
-
-Conventions:
-
-- `actions/checkout@v4`, `actions/setup-java@v3` with `distribution: temurin`.
-- **`java-version` must match `tn-parent`'s compiler release.** The current workflows
-  still pin `'21'` while the parent is on `25` — bring them in step when you touch a
-  workflow.
-- The token is `secrets.WORKFLOW_TOKEN`, exposed to Maven as `GITHUB_TOKEN`.
-- Branch model: work merges to `develop` (snapshot deploy); `main` is the release
-  branch driven by release-please.
+- `feat` bumps the minor, `fix` the patch, a breaking change the major; anything else
+  only builds.
+- The release is committed back (`chore(release): <version> [skip ci]`) and tagged
+  `v<version>`, so a pom on `main` declares the last release — there are no SNAPSHOTs.
+- A library or service deploys to GitHub Packages; a `java-service-container` repo
+  pushes its image to `ghcr.io/nickersan/${docker-image-repository}`.
+- A `java-spring-service`'s `build.yaml` names its container repo
+  (`container-repository: <name>-container`). Each release pins the new jar there, as
+  `feat(deps)`/`fix(deps)` to match, which releases a new image.
+- The repo needs a `WORKFLOW_TOKEN` secret (a PAT with `repo` and `write:packages`).
+- The workflow's `java-version` (default `'25'`) must match `tn-parent`'s compiler
+  release.
 
 ## Distribution
 
