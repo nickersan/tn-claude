@@ -7,8 +7,17 @@
 
 - Declare a dependency **without a `<version>`** when the parent manages it. This
   covers the whole Spring Boot / Spring Cloud stack, Jackson, Guava, Flyway,
-  PostgreSQL, Lombok, SLF4J/Logback, Testcontainers, H2, jjwt, commons-*, snakeyaml,
-  springdoc, and every `com.tn.*` artifact.
+  PostgreSQL, Lombok, SLF4J/Logback, Testcontainers, H2, jjwt, commons-*, snakeyaml
+  and springdoc.
+- **`com.tn.*` artifacts are the exception: the parent doesn't manage them.** Each
+  component declares the tn libraries it uses, each version a property named for the
+  artifact (`<tn-service.version>2.0.0</tn-service.version>`, used as
+  `<version>${tn-service.version}</version>`). Renovate moves them on as each library
+  releases, all of a component's together - see `build-and-ci.md`. That keeps a
+  library release from being a `tn-parent` release, and lets a component take a
+  library update and a framework update separately. A contract producer also sets
+  `tn-service.version`, which the parent's contracts profile builds on, even when it
+  doesn't depend on `tn-service` itself.
 - Only specify a `<version>` for something genuinely not in the parent, and treat that
   as a signal: if it is reusable, it probably belongs in the parent instead.
 - Versions that need to move together are driven by a property in the parent
@@ -21,8 +30,8 @@
 - Group `com.tn.*` dependencies first, then a `<!-- 3rd party -->` comment, then
   external ones.
 - Test-only artifacts get `<scope>test</scope>`. `test-jar` dependencies use
-  `<type>test-jar</type>` + `<scope>test</scope>` (the parent already manages the
-  `tn-service` / `tn-data-service-jpa` test jars).
+  `<type>test-jar</type>` + `<scope>test</scope>`, and a tn library's test jar uses the
+  same version property as its jar.
 - Keep the list minimal — a library POM often adds just one or two lines because the
   parent supplies the rest.
 

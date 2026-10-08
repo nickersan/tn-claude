@@ -17,14 +17,13 @@ generated POM.
 - Order inside `<project>`: `modelVersion`, `parent`, coordinates
   (`groupId` / `artifactId` / `version`), `packaging`, `properties`, `dependencies`,
   `dependencyManagement`, `build`, `profiles`, `scm`, `distributionManagement`.
-- Within `<dependencyManagement>`, `com.tn.*` artifacts come first, then a
-  `<!-- 3rd party -->` divider, then external artifacts roughly alphabetised by
-  `groupId`.
+- Within `<dependencyManagement>`, artifacts are roughly alphabetised by `groupId`.
+  `tn-parent` manages no `com.tn.*` artifacts (see `dependencies.md`).
 - Keep commented-out experiments only with a short reason; delete stale ones.
-- **Do not repeat `<repositories>` in a component POM.** `tn-parent` already
-  declares it, and Maven inherits `<repositories>` from the parent automatically —
-  repeating it is redundant, not protective. Some existing components still repeat
-  it (drifted, not deliberate); clean it up if you're already touching that POM.
+- **Every component POM repeats the GitHub Packages `<repositories>` entry**, as
+  `dependencies.md` shows. Maven does inherit it from `tn-parent`, but only once it has
+  the parent - and the parent itself comes from GitHub Packages. Without it a build
+  works only where `settings.xml` names the repository, which CI's doesn't.
 
 ## Component POM skeleton
 

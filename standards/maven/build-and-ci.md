@@ -99,6 +99,20 @@ exactly what a push does. In short:
 - The workflow's `java-version` (default `'25'`) must match `tn-parent`'s compiler
   release.
 
+**Dependencies are kept current by Renovate**, run hourly from `nickersan/actions`
+(`renovate/config.js` lists the repos; they carry no Renovate config of their own):
+
+- A tn or okayat library's release reaches every repo using it straight away: its
+  version properties, and `tn-parent`, move on together in one `renovate/tn-libraries`
+  branch.
+- Third-party minor and patch updates come once a week, Monday morning, all of a
+  repo's in one branch - so `tn-parent` releases once for the lot.
+- Renovate's branches build as checks, never releasing. When the build passes the
+  branch is fast-forwarded onto `main` as `fix(deps):`, and `main`'s build releases it.
+- A major update - Spring Boot 5, say - waits as a pull request for a person, and is
+  committed as `feat(deps)!:`: a major of something we build on is a major of ours.
+- A container repo's pin on its service is CI's to move (above), not Renovate's.
+
 ## Distribution
 
 Artifacts (including attached source and test jars) publish to GitHub Packages:
