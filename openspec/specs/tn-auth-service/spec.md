@@ -157,6 +157,39 @@ rejected and end no session.
   verification, or a malformed token to revoke a session
 - **THEN** the system rejects the request and ends no session
 
+### Requirement: A subject's other sessions can be ended, sparing one
+The system SHALL end every session of a subject except the one a refresh token
+belongs to, whether the token is that session's current one or its previous one
+within the grace period, and SHALL return how many sessions it ended. Sessions of
+other subjects SHALL be unaffected. A token that is not a genuine, unexpired
+refresh token of that subject, or whose session no longer exists, SHALL be
+rejected and end no session. Access tokens already issued remain valid until
+they expire.
+
+#### Scenario: Every other session ends and the named one is kept
+- **WHEN** a subject has three sessions and a caller ends the others, naming one
+  by its refresh token
+- **THEN** the system reports 2 ended, the other two cannot refresh, and the named
+  one can
+
+#### Scenario: The token the named session just replaced still names it
+- **WHEN** a caller ends the other sessions naming the token a session replaced
+  within the grace period
+- **THEN** that session is kept and the others end
+
+#### Scenario: No other sessions
+- **WHEN** a subject with one session ends the others
+- **THEN** the system reports 0 ended and the session can still refresh
+
+#### Scenario: Another subject's sessions are unaffected
+- **WHEN** one subject's other sessions are ended
+- **THEN** sessions of other subjects can still be refreshed
+
+#### Scenario: A token that cannot name the session to keep is rejected
+- **WHEN** a caller names an access token, a malformed or expired token, a token
+  whose session has ended, or a refresh token of another subject
+- **THEN** the system rejects the request and ends no session
+
 ### Requirement: Expired sessions are removed
 The system SHALL remove sessions whose refresh token has expired.
 

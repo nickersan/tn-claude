@@ -69,14 +69,21 @@ capabilities:
       refresh.grace-period`, 60s). A session can be ended by presenting its
       current or previous refresh token to revoke-tokens, which accepts a
       genuine refresh token whose session has already ended and rejects (400)
-      anything that is not one. A migration carries each subject's newest
+      anything that is not one. revoke-other-tokens ends every other session of
+      a subject, sparing the one a refresh token (current, or previous within
+      the grace period) belongs to, and returns how many ended; it rejects (400)
+      a token that is not a genuine, unexpired refresh token of that subject
+      whose session still exists. The access token lifetime is
+      `tn.auth-service.token.access.time-to-live` (10 minutes by default); an
+      access token already issued stays valid until it expires. A migration carries each subject's newest
       existing refresh token over as a session. Supersedes tn-oauth-service (deprecated, same
       code under the `com.tn.oauthservice` package / `pilch.oauth-service.*`
       properties).
     repo: tn-auth-service
     api: >-
       POST /v1/actions/generate-tokens, POST /v1/actions/refresh-tokens,
-      POST /v1/actions/revoke-tokens
+      POST /v1/actions/revoke-tokens, POST /v1/actions/revoke-other-tokens
+      ({subject, refreshToken} -> {revoked})
     status: active
     spec: openspec/specs/tn-auth-service/spec.md
 
