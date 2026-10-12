@@ -66,12 +66,17 @@ capabilities:
       subject can be signed in on any number of devices; each refresh replaces
       the refresh token and starts a new refresh period, and the token just
       replaced is accepted for a short grace period (`tn.auth-service.token.
-      refresh.grace-period`, 60s). A migration carries each subject's newest
+      refresh.grace-period`, 60s). A session can be ended by presenting its
+      current or previous refresh token to revoke-tokens, which accepts a
+      genuine refresh token whose session has already ended and rejects (400)
+      anything that is not one. A migration carries each subject's newest
       existing refresh token over as a session. Supersedes tn-oauth-service (deprecated, same
       code under the `com.tn.oauthservice` package / `pilch.oauth-service.*`
       properties).
     repo: tn-auth-service
-    api: POST /v1/actions/generate-tokens, POST /v1/actions/refresh-tokens
+    api: >-
+      POST /v1/actions/generate-tokens, POST /v1/actions/refresh-tokens,
+      POST /v1/actions/revoke-tokens
     status: active
     spec: openspec/specs/tn-auth-service/spec.md
 

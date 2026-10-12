@@ -129,6 +129,34 @@ reject that token, and the session SHALL stay refreshable with its current one.
 - **THEN** the system rejects it, and the session's current refresh token still
   refreshes
 
+### Requirement: A session can be ended by its refresh token
+The system SHALL end the session a refresh token belongs to when that token is
+presented to revoke it, whether it is the session's current token or its
+previous one, so neither can refresh again, including within the grace period.
+Other sessions of the same subject SHALL be unaffected. A genuine refresh token
+whose session no longer exists, or which has itself expired, SHALL be accepted
+and change nothing. Anything that is not a genuine refresh token SHALL be
+rejected and end no session.
+
+#### Scenario: A revoked session cannot refresh
+- **WHEN** a caller revokes a session's current refresh token, or its previous
+  one within the grace period, and then presents either to refresh
+- **THEN** the system rejects the refresh
+
+#### Scenario: Revoking leaves other sessions alone
+- **WHEN** one of a subject's sessions is revoked
+- **THEN** the subject's other sessions can still be refreshed
+
+#### Scenario: Revoking an ended session succeeds
+- **WHEN** a caller revokes a genuine refresh token whose session has already
+  been revoked, purged or has expired
+- **THEN** the system accepts the request and changes nothing
+
+#### Scenario: Only a refresh token can revoke
+- **WHEN** a caller presents an access token, a token that fails signature
+  verification, or a malformed token to revoke a session
+- **THEN** the system rejects the request and ends no session
+
 ### Requirement: Expired sessions are removed
 The system SHALL remove sessions whose refresh token has expired.
 
