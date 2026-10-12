@@ -177,6 +177,11 @@ they expire.
   within the grace period
 - **THEN** that session is kept and the others end
 
+#### Scenario: A token replaced beyond the grace period names nothing
+- **WHEN** a caller ends the other sessions naming a token its session replaced longer ago
+  than the grace period
+- **THEN** the system rejects the request and ends no session
+
 #### Scenario: No other sessions
 - **WHEN** a subject with one session ends the others
 - **THEN** the system reports 0 ended and the session can still refresh
