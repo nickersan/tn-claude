@@ -27,6 +27,37 @@ the same email, and no two users may share the same phone number.
 - **THEN** the system stores both, and either can subsequently be used to find
   that same user
 
+### Requirement: A phone number is a country code and a national number
+The system SHALL hold a phone number as its country calling code and its
+national significant number — the number without the trunk prefix used when
+dialling within the country (the UK's leading 0), but keeping a leading 0 that
+is part of the number (Italy's). Both parts SHALL be set or neither. The pair
+SHALL be unique across users. The system SHALL validate the pair against the
+country's numbering plan and reject a number not already in national
+significant form, so every caller stores one form of a number; callers
+normalise first.
+
+#### Scenario: A valid number is stored as given
+- **WHEN** a caller creates a user with country code 44 and number 7911123456
+- **THEN** the system stores and returns that country code and number
+
+#### Scenario: An Italian number keeps its leading zero
+- **WHEN** a caller creates a user with country code 39 and number 0612345678
+- **THEN** the system stores the number with its leading 0
+
+#### Scenario: A trunk prefix is rejected
+- **WHEN** a caller creates a user with country code 44 and number 07911123456
+- **THEN** the system rejects the request
+
+#### Scenario: A number too short for its country is rejected
+- **WHEN** a caller supplies a number too short to be valid for its country code
+- **THEN** the system rejects the request
+
+#### Scenario: Only one part is rejected
+- **WHEN** a caller supplies a country code without a number, or a number
+  without a country code
+- **THEN** the system rejects the request
+
 ### Requirement: Profile details are optional beyond an identifier
 The system SHALL allow a profile to exist with only one identifier set; name
 fields and the other identifier type are optional and may be supplied later.
@@ -37,10 +68,10 @@ fields and the other identifier type are optional and may be supplied later.
   number
 
 ### Requirement: Find-or-create by identifier is a single safe operation
-The system SHALL provide a find-or-create operation that, given an identifier
-type and value, returns the existing user for it or creates one if none
-exists, and SHALL guarantee at most one user is ever created for a given
-identifier value even when the operation is called concurrently for the same
+The system SHALL provide a find-or-create operation that, given either an
+email address or a phone number, returns the existing user for it or creates
+one if none exists, and SHALL guarantee at most one user is ever created for a
+given identifier value even when the operation is called concurrently for the same
 new value (the system runs as multiple instances in any real environment, so
 this guarantee SHALL hold across instances, not just within one process).
 
@@ -53,6 +84,16 @@ this guarantee SHALL hold across instances, not just within one process).
 - **WHEN** a caller invokes find-or-create for an identifier value that
   already belongs to a user
 - **THEN** the system returns the existing user without creating another one
+
+#### Scenario: The same phone number finds the same user
+- **WHEN** a caller invokes find-or-create twice for the same country code and
+  number
+- **THEN** both calls return the same user
+
+#### Scenario: Neither or both identifiers is rejected
+- **WHEN** a caller invokes find-or-create with both an email address and a
+  phone number, or with neither
+- **THEN** the system rejects the request
 
 #### Scenario: Concurrent calls for the same new identifier value create exactly one user
 - **WHEN** two or more calls invoke find-or-create for the same identifier

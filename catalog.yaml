@@ -73,16 +73,21 @@ capabilities:
   - id: tn-user-service
     kind: service
     summary: >-
-      User profile and identity anchor. `email`/`phone` are individually
-      unique, nullable columns — at most one of each per user, more than one
-      linkable to the same user. Its own id is the stable id used everywhere
-      once a user is authenticated, including the subject `tn-auth-service`
-      mints a session for. Create/update take the same shape (email, phone,
-      fullName, preferredName, no id) either way — linking or changing an
-      identifier is just an update, not a separate action.
+      User profile and identity anchor. `email` and `phone` are each unique,
+      nullable — at most one of each per user, more than one linkable to the
+      same user. `phone` is `{countryCode, number}`: the country calling code
+      and the national significant number (no trunk prefix, so the UK's leading
+      0 is dropped and Italy's kept), validated with libphonenumber and unique
+      as a pair. Its own id is the stable id used everywhere once a user is
+      authenticated, including the subject `tn-auth-service` mints a session
+      for. Create/update take the same shape (email, phone, fullName,
+      preferredName, no id) either way — linking or changing an identifier is
+      just an update, not a separate action. Find-or-create takes either
+      `email` or `phone`.
     repo: tn-user-service
     api: >-
       GET/POST/PUT/DELETE /v1/users, POST /v1/actions/find-or-create
+      ({email} or {phone: {countryCode, number}})
     status: active
     spec: openspec/specs/tn-user-service/spec.md
 
