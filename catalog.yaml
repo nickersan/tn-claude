@@ -100,11 +100,19 @@ capabilities:
       for. Create/update take the same shape (email, phone, fullName,
       preferredName, no id) either way — linking or changing an identifier is
       just an update, not a separate action. Find-or-create takes either
-      `email` or `phone`.
+      `email` or `phone`. A user can also have an avatar: a JPEG or PNG of at
+      most 100 KB (2048 px a side), kept in a table of its own so reading users
+      never reads it, and stored re-encoded from its pixels alone so that none
+      of the photo's metadata (e.g. GPS location) is kept. The user
+      representation carries only `avatarVersion` (per user, only ever goes
+      up, absent with no avatar). Uploads are rate-limited per user; the
+      avatar is served with its stored content type, `nosniff` and private
+      caching.
     repo: tn-user-service
     api: >-
       GET/POST/PUT/DELETE /v1/users, POST /v1/actions/find-or-create
-      ({email} or {phone: {countryCode, number}})
+      ({email} or {phone: {countryCode, number}}),
+      PUT/GET/DELETE /v1/users/{id}/avatar (the picture itself as the body)
     status: active
     spec: openspec/specs/tn-user-service/spec.md
 

@@ -171,3 +171,119 @@ and SHALL NOT log an email address or phone number value unmasked.
 - **WHEN** the system creates, finds, or updates a user
 - **THEN** it emits a structured log entry describing the event, and that
   entry does not contain the unmasked email address or phone number value
+
+### Requirement: A user can have an avatar, kept apart from the user
+The system SHALL let a user have one avatar picture, set, read and removed through
+`PUT`, `GET` and `DELETE /v1/users/{id}/avatar`. The picture SHALL be held in a table
+of its own, so that reading users never reads a picture. The user representation SHALL
+carry `avatarVersion` only: a number that changes with each new picture and is absent
+when the user has none. The version SHALL count per user and never be reused for that
+user, including after the avatar is removed and another set. Updating a user SHALL keep
+their avatar, and deleting a user SHALL delete it. The avatar a user has is replaced or
+deleted in place: no earlier picture is kept.
+
+#### Scenario: Setting an avatar
+- **WHEN** a caller sets an avatar for a user who has none
+- **THEN** the system returns the user with `avatarVersion` 1, and serves the picture
+
+#### Scenario: Replacing an avatar changes its version
+- **WHEN** a caller sets an avatar for a user who has one
+- **THEN** the system serves only the new picture, and `avatarVersion` has increased
+
+#### Scenario: A removed avatar's version is not reused
+- **WHEN** a caller removes a user's avatar and then sets another
+- **THEN** the new `avatarVersion` is higher than any the user has had
+
+#### Scenario: Versions count per user
+- **WHEN** two users each have their first avatar set
+- **THEN** both have `avatarVersion` 1
+
+#### Scenario: Reading users does not read pictures
+- **WHEN** a caller gets, lists, updates or finds-or-creates a user who has an avatar
+- **THEN** the system does not load the picture
+
+#### Scenario: Updating a user keeps their avatar
+- **WHEN** a caller updates a user who has an avatar
+- **THEN** the user's `avatarVersion` and picture are unchanged
+
+#### Scenario: Deleting a user deletes their avatar
+- **WHEN** a caller deletes a user who has an avatar
+- **THEN** the system holds no picture for that user
+
+#### Scenario: An unknown user has no avatar
+- **WHEN** a caller sets, reads or removes the avatar of a user that does not exist
+- **THEN** the system responds not found
+
+### Requirement: An avatar is a small JPEG or PNG, stored without its metadata
+The system SHALL accept as an avatar only a JPEG or PNG of at most 100 KB, as sent and
+as stored, and at most 2048 pixels on a side. It SHALL judge a file by its contents,
+not by the content type it is sent with. It SHALL read a picture's size from its header
+and refuse one that is too large before decoding it, decode with the picture's embedded
+metadata left unread, and decode at most a configured number of pictures at once. It
+SHALL store a picture written afresh from its pixels alone, so that none of the photo's
+embedded metadata (location, camera details, time taken, colour profile) is kept. It
+SHALL stop reading an upload once it exceeds 100 KB.
+
+#### Scenario: A picture within the limits is accepted
+- **WHEN** a caller sets a JPEG or PNG of at most 100 KB and 2048 pixels on a side
+- **THEN** the system accepts it
+
+#### Scenario: A picture over 100 KB is refused
+- **WHEN** a caller sets a picture over 100 KB
+- **THEN** the system responds bad request and the user's avatar is unchanged
+
+#### Scenario: An oversized body is not read in full
+- **WHEN** a caller sends an upload of tens of megabytes
+- **THEN** the system refuses it having read little more than 100 KB
+
+#### Scenario: A file that is not a JPEG or PNG is refused
+- **WHEN** a caller sets a text file sent as `image/jpeg`, or a GIF
+- **THEN** the system responds bad request and the user's avatar is unchanged
+
+#### Scenario: A picture claiming enormous dimensions is refused undecoded
+- **WHEN** a caller sets a small file whose header gives 20000 by 20000 pixels
+- **THEN** the system responds bad request without decoding it
+
+#### Scenario: Location is removed
+- **WHEN** a caller sets a JPEG whose EXIF data includes GPS coordinates
+- **THEN** the picture the system serves has no EXIF data and the same dimensions
+
+#### Scenario: A picture that is too large once re-encoded is refused
+- **WHEN** a caller sets a PNG under 100 KB that is over 100 KB once written afresh
+- **THEN** the system responds bad request and the user's avatar is unchanged
+
+#### Scenario: A malformed colour profile does not stop a picture being accepted
+- **WHEN** a caller sets a JPEG with a colour profile that is not valid
+- **THEN** the system accepts the picture, stored without the profile
+
+### Requirement: Avatar uploads are limited
+The system SHALL limit how many avatar uploads a user may start in a period, across
+every instance, counting uploads that are then refused, and SHALL respond too many
+requests to the excess. It SHALL respond too many requests, too, when it is already
+decoding as many pictures as it is configured to.
+
+#### Scenario: Uploading too often is refused
+- **WHEN** a user starts more uploads in the period than the limit allows
+- **THEN** the system responds too many requests and the user's avatar is unchanged
+
+#### Scenario: Refused uploads count
+- **WHEN** a user's uploads are refused as not pictures until the limit is reached
+- **THEN** their next upload is refused as too many requests
+
+#### Scenario: The limit is per user
+- **WHEN** one user has reached the limit
+- **THEN** another user can still upload
+
+### Requirement: An avatar is served as the image it is, and kept private
+The system SHALL serve an avatar with the content type of the image it stored
+(`image/jpeg` or `image/png`), never the type the upload gave, with
+`X-Content-Type-Options: nosniff` and `Cache-Control` marking it private. It SHALL NOT
+write a picture's contents to a log.
+
+#### Scenario: Served with the stored type
+- **WHEN** a caller reads the avatar of a user who set a PNG sent as `image/jpeg`
+- **THEN** the response is `image/png`, with `nosniff` and a private `Cache-Control`
+
+#### Scenario: Pictures are not logged
+- **WHEN** a caller sets and reads an avatar
+- **THEN** no log entry contains the picture's bytes
