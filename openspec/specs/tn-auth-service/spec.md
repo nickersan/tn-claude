@@ -34,7 +34,7 @@ neither creates nor resolves it.
   never seen before
 - **THEN** the system mints a valid token pair for it without attempting to
   look up, validate, or create any record for that id beyond what is needed to
-  manage the resulting refresh token
+  manage the resulting session
 
 ### Requirement: The system does not accept caller-supplied claims
 The system SHALL accept only a subject id from the caller; every other claim
@@ -84,21 +84,58 @@ that produced it.
 - **THEN** the new access token's `jti` claim is a freshly generated TSID,
   different from the refresh token's own `jti`
 
-### Requirement: Refresh preserves the original subject id
-The system SHALL issue a new access token for a valid, unexpired refresh
-token, carrying the same subject id the original session had.
+### Requirement: Each sign-in is its own session, refreshed until it goes unused
+The system SHALL treat each issued token pair as a session of its own, so any
+number of sessions for one subject can be refreshed at once. Each refresh SHALL
+issue a new access token for the same subject, and a new refresh token that
+replaces the one presented and starts a new refresh period. A session ends
+only when its refresh token expires unused.
 
 #### Scenario: Valid refresh token
-- **WHEN** a caller presents a refresh token that matches the most recently
-  issued one for its subject and has not expired
-- **THEN** the system returns a new access token carrying the same subject id
-  as the original session
+- **WHEN** a caller presents the current refresh token of a session, and it has
+  not expired
+- **THEN** the system returns a new access token carrying the same subject id,
+  and a new refresh token whose expiry is a full refresh period from now
 
-#### Scenario: Unrecognised or superseded refresh token
-- **WHEN** a caller presents a refresh token that does not match the most
-  recently issued one for its subject, or that fails signature verification
+#### Scenario: Another sign-in does not end a session
+- **WHEN** a session's subject is issued a second session
+- **THEN** the first session's refresh token can still be refreshed
+
+#### Scenario: A session in use outlasts its first refresh period
+- **WHEN** a session is refreshed within each refresh period, for longer than
+  one period in total
+- **THEN** each refresh succeeds
+
+#### Scenario: A session left unused ends
+- **WHEN** a caller presents a refresh token that has expired, or fails
+  signature verification
 - **THEN** the system rejects the request and does not issue a new access
   token
+
+### Requirement: A replaced refresh token is accepted briefly
+The system SHALL, for a short grace period after a refresh token is replaced,
+answer a refresh with that token by issuing a new access token and returning the
+refresh token that replaced it, without replacing it again. Afterwards it SHALL
+reject that token, and the session SHALL stay refreshable with its current one.
+
+#### Scenario: A retried refresh converges
+- **WHEN** a caller presents a refresh token within the grace period after it
+  was replaced
+- **THEN** the system returns a new access token and the refresh token that
+  replaced it
+
+#### Scenario: A replaced token is rejected after the grace period
+- **WHEN** a caller presents a replaced refresh token after the grace period
+- **THEN** the system rejects it, and the session's current refresh token still
+  refreshes
+
+### Requirement: Expired sessions are removed
+The system SHALL remove sessions whose refresh token has expired.
+
+#### Scenario: An expired session is removed
+- **WHEN** a new session is issued after another session's refresh token has
+  expired
+- **THEN** the expired session no longer exists and live sessions remain
 
 ### Requirement: Token/session records are separate from profile and identity data
 The system SHALL NOT require or store any identifier, account, or user profile
@@ -110,15 +147,15 @@ data — that is entirely another service's responsibility (today,
 - **THEN** the system does so without requiring, storing, or returning any
   identifier, account, or profile field
 
-### Requirement: Refresh token records use TSID primary keys
-The system SHALL assign each refresh token record's primary key as a TSID, not
-a database-sequence value, per `tn-claude/standards/java/identifiers.md`. This
-is the refresh token's own database row id, separate from the `jti` claim
-embedded in the JWT it stores.
+### Requirement: Session records use TSID primary keys
+The system SHALL assign each session record's primary key as a TSID, not a
+database-sequence value, per `tn-claude/standards/java/identifiers.md`. This is
+the session's own database row id, separate from the `jti` claims embedded in
+the JWTs it issues.
 
-#### Scenario: New refresh token record gets a TSID
+#### Scenario: New session record gets a TSID
 - **WHEN** the system issues a new session
-- **THEN** the refresh token record's primary key is a TSID value, not a
+- **THEN** the session record's primary key is a TSID value, not a
   sequence-issued one
 
 ### Requirement: Structured logging masks the token
