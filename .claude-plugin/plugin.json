@@ -1,0 +1,8 @@
+{
+  "name": "tn",
+  "version": "0.1.0",
+  "description": "Shared workflows for the tn layer and the projects built on it",
+  "author": {
+    "name": "Nick Holt"
+  }
+}

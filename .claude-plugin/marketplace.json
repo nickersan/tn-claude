@@ -1,0 +1,16 @@
+{
+  "name": "tn-claude",
+  "owner": {
+    "name": "Nick Holt"
+  },
+  "metadata": {
+    "description": "The tn layer's shared Claude Code plugin"
+  },
+  "plugins": [
+    {
+      "name": "tn",
+      "source": "./",
+      "description": "Shared workflows for the tn layer and the projects built on it"
+    }
+  ]
+}

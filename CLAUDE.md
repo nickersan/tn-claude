@@ -14,7 +14,13 @@ It contains no production code. Do not add application logic here.
   `@fission-ai/openspec` CLI). See `openspec/config.yaml` for how this differs from
   `standards/` and from a consuming project's own spec tree.
 - `catalog.yaml` / `registry.yaml` — what the `tn` layer provides / which repos exist.
-- `templates/`, `.claude/skills/`, `docs/architecture/` — placeholders for now.
+- `.claude-plugin/` and `skills/` — this repo is also the **`tn` Claude Code plugin**, so its skills run in every
+  project as `/tn:<skill>`. `skills/complete-change` (`/tn:complete-change`) is how a feature or task is finished:
+  every touched repo's suites, the publish chain, the specs synced and the change archived, the project's full
+  acceptance suites green, then commit, push and CI. Keep skills project-neutral: what is particular to a project
+  (its acceptance suites, prerequisites, publish order) belongs in that project's own `CLAUDE.md`. Install it once:
+  `claude plugin marketplace add <path to this repo>`, then `claude plugin install tn@tn-claude`.
+- `templates/`, `docs/architecture/` — placeholders for now.
 
 ## Ground rules
 
