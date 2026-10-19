@@ -87,7 +87,7 @@ capabilities:
     status: active
     spec: openspec/specs/tn-auth-service/spec.md
     requested_changes:
-      - by: okayat system-administrators (admin-console series, 2026-10-19)
+      - by: okayat system-administrators (admin-console series, 2026-10-19), released in 1.4.0
         summary: >-
           generate-tokens takes optional `roles` (opaque strings, never interpreted here). They are kept on the session,
           carried in the access token only (never the refresh token) as a `roles` claim (RFC 9068), and re-minted unchanged
@@ -155,7 +155,7 @@ capabilities:
     contract: n/a (plain library)
     spec: openspec/specs/tn-service/spec.md
     requested_changes:
-      - by: okayat system-administrators (admin-console series, 2026-10-19)
+      - by: okayat system-administrators (admin-console series, 2026-10-19), released in 2.1.0
         summary: >-
           AccessTokenVerifier reads the `roles` claim of an access token: `roles(token)` and `hasRole(token, role)`. Generic;
           each service names the role it needs. A refresh token is still never accepted.
