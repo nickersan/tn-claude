@@ -100,19 +100,17 @@ capabilities:
       for. Create/update take the same shape (email, phone, fullName,
       preferredName, no id) either way — linking or changing an identifier is
       just an update, not a separate action. Find-or-create takes either
-      `email` or `phone`. A user can also have an avatar: a JPEG or PNG of at
-      most 100 KB (2048 px a side), kept in a table of its own so reading users
-      never reads it, and stored re-encoded from its pixels alone so that none
-      of the photo's metadata (e.g. GPS location) is kept. The user
-      representation carries only `avatarVersion` (per user, only ever goes
-      up, absent with no avatar). Uploads are rate-limited per user; the
-      avatar is served with its stored content type, `nosniff` and private
-      caching.
+      `email` or `phone`. A user can also have an avatar, which is an item in
+      tn-media-service (a picture) and not held here: the user representation
+      carries only `avatarMediaId`, the id of that item (absent with no
+      avatar), set and cleared through `PUT/DELETE
+      /v1/users/{id}/avatar-media`. Picking, checking and serving the picture
+      is tn-media-service's.
     repo: tn-user-service
     api: >-
       GET/POST/PUT/DELETE /v1/users, POST /v1/actions/find-or-create
       ({email} or {phone: {countryCode, number}}),
-      PUT/GET/DELETE /v1/users/{id}/avatar (the picture itself as the body)
+      PUT /v1/users/{id}/avatar-media/{mediaId}, DELETE /v1/users/{id}/avatar-media
     status: active
     spec: openspec/specs/tn-user-service/spec.md
 
@@ -175,6 +173,22 @@ capabilities:
     repo: tn-outbox
     contract: n/a (plain library; schema in META-INF/tn-outbox/outbox.sql, settings under tn.outbox)
     status: active
+
+  - id: tn-media-service
+    kind: service
+    summary: >-
+      Requested by okayat (media-service), released 0.1.0: owns media items - bytes in S3-compatible object storage, metadata in
+      Postgres. An item is immutable with a never-reused id; replacing a picture is a new item. Images (JPEG, PNG) only to
+      start, accepted under a named upload profile (`avatar`: 100 KB, 2048 px a side), judged by content, bounded before
+      decoding and re-encoded from pixels so no photo metadata is kept; status leaves room for video (`processing`).
+      Has no authentication of its own (its consumer's BFF is the gate). Reports against an item hide it from all but the
+      member who added it, and staff can remove it (bytes deleted, record kept). Also takes over the avatar tn-user-service
+      holds today (okayat user-avatar-on-media).
+    repo: tn-media-service
+    status: active
+    api: >-
+      POST /v1/media?profile=&owner= (the picture as the body), GET /v1/media/{id}, GET /v1/media/{id}/content,
+      DELETE /v1/media/{id}, POST /v1/media/{id}/actions/remove
 
   # Services present in the tn layer but not yet catalogued in detail:
   #   tn-data-service(-jdbc/-jpa), tn-directory-service,
