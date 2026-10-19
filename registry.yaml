@@ -27,6 +27,18 @@ components:
     repo: tn-query
     notes: Repo contains a small reactor (tn-query, tn-query-java, tn-query-jdbc, tn-query-jpa).
 
+  - name: tn-resilience
+    type: java-library
+    groupId: com.tn.resilience
+    repo: tn-resilience
+    notes: Timeouts, rate limiter, bulkhead, circuit breaker and safe retries for @HttpExchange clients (Resilience4j). Requested by okayat's home-feed change.
+
+  - name: tn-outbox
+    type: java-library
+    groupId: com.tn.outbox
+    repo: tn-outbox
+    notes: Transactional outbox and relay (PostgreSQL, JDBC). Requested by okayat's home-feed change.
+
   - name: tn-cli
     type: java-cli
     groupId: com.tn

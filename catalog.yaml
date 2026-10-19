@@ -153,6 +153,29 @@ capabilities:
     repo: tn-client-feign
     status: deprecated
 
+  - id: tn-resilience
+    kind: library
+    summary: >-
+      Requested by okayat (home-feed): shared configuration for protecting service-to-service calls
+      (Resilience4j) - a timeout, circuit breaker, bulkhead and rate limiter per service called, with
+      retries only for calls declared safe to repeat - for the @HttpExchange clients every service
+      uses. Released 1.1.0.
+    artifact: com.tn.resilience:tn-resilience
+    repo: tn-resilience
+    contract: n/a (plain library; auto-configured, settings under tn.resilience)
+    status: active
+
+  - id: tn-outbox
+    kind: library
+    summary: >-
+      Requested by okayat (home-feed): a transactional outbox - a table written in the caller's own
+      transaction and a relay that posts unsent rows to a target, repeating until acknowledged - so a
+      service can record an event with its change and deliver it at least once. Released 1.1.0.
+    artifact: com.tn.outbox:tn-outbox
+    repo: tn-outbox
+    contract: n/a (plain library; schema in META-INF/tn-outbox/outbox.sql, settings under tn.outbox)
+    status: active
+
   # Services present in the tn layer but not yet catalogued in detail:
   #   tn-data-service(-jdbc/-jpa), tn-directory-service,
   #   tn-element-service, tn-file-service, tn-storage-service, tn-cli

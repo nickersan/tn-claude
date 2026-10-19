@@ -16,7 +16,7 @@ It contains no production code. Do not add application logic here.
 - `catalog.yaml` / `registry.yaml` — what the `tn` layer provides / which repos exist.
 - `.claude-plugin/` and `skills/` — this repo is also the **`tn` Claude Code plugin**, so its skills run in every
   project as `/tn:<skill>`. `skills/complete-change` (`/tn:complete-change`) is how a feature or task is finished:
-  every touched repo's suites, the publish chain, the specs synced and the change archived, the project's full
+  every touched repo's suites, a review of the change against its spec and the standards, the publish chain, the specs synced and the change archived, the project's full
   acceptance suites green, then commit, push and CI. Keep skills project-neutral: what is particular to a project
   (its acceptance suites, prerequisites, publish order) belongs in that project's own `CLAUDE.md`. Install it once:
   `claude plugin marketplace add <path to this repo>`, then `claude plugin install tn@tn-claude`.
