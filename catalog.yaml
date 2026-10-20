@@ -29,6 +29,12 @@ capabilities:
     artifact: com.tn.query:tn-query
     repo: tn-query
     contract: n/a (plain library)
+    requested_changes:
+      - by: okayat admin-console-foundation (2026-10-20)
+        change: openspec/changes/query-embedded-fields
+        summary: >-
+          A filter (and a sort) on tn-query-jpa can name a field of an embedded type by a dotted name, e.g. `phone.number ≈ *7911*`.
+          Today only top-level fields can be named; verified against Postgres that `phone.number` is rejected as an unknown name.
     related:
       - com.tn.query:tn-query-java
       - com.tn.query:tn-query-jdbc
@@ -116,12 +122,6 @@ capabilities:
       GET/POST/PUT/DELETE /v1/users, POST /v1/actions/find-or-create
       ({email} or {phone: {countryCode, number}}),
       PUT /v1/users/{id}/avatar-media/{mediaId}, DELETE /v1/users/{id}/avatar-media
-    requested_changes:
-      - by: okayat admin-console-foundation (2026-10-19)
-        summary: >-
-          Search users, paged, by part of full name, preferred name, email or phone, or by exact id, for staff tooling.
-          Nothing searches users today.
-        api: GET /v1/users?q=&page=&size=
     status: active
     spec: openspec/specs/tn-user-service/spec.md
 
