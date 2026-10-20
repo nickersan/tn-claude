@@ -76,25 +76,21 @@ capabilities:
       whose session still exists. The access token lifetime is
       `tn.auth-service.token.access.time-to-live` (10 minutes by default); an
       access token already issued stays valid until it expires. A migration carries each subject's newest
-      existing refresh token over as a session. Supersedes tn-oauth-service (deprecated, same
+      existing refresh token over as a session. A caller may also give `roles` when issuing a session
+      (opaque strings, each non-blank with no whitespace): they are kept on the session and put in the
+      `roles` claim of every access token it issues, after every refresh too, and never in the refresh
+      token; a session from before roles has none. revoke-all-tokens ends every session of a subject.
+      Supersedes tn-oauth-service (deprecated, same
       code under the `com.tn.oauthservice` package / `pilch.oauth-service.*`
       properties).
     repo: tn-auth-service
     api: >-
       POST /v1/actions/generate-tokens, POST /v1/actions/refresh-tokens,
       POST /v1/actions/revoke-tokens, POST /v1/actions/revoke-other-tokens
-      ({subject, refreshToken} -> {revoked})
+      ({subject, refreshToken} -> {revoked}), POST /v1/actions/revoke-all-tokens ({subject} -> {revoked});
+      generate-tokens takes {subject, roles?}
     status: active
     spec: openspec/specs/tn-auth-service/spec.md
-    requested_changes:
-      - by: okayat system-administrators (admin-console series, 2026-10-19), released in 1.4.0
-        summary: >-
-          generate-tokens takes optional `roles` (opaque strings, never interpreted here). They are kept on the session,
-          carried in the access token only (never the refresh token) as a `roles` claim (RFC 9068), and re-minted unchanged
-          on refresh without calling anyone; a request with none gives a token with no `roles` claim, and sessions that
-          exist already have none. A new action ends every session of a subject, for operators who remove a role.
-        api: >-
-          POST /v1/actions/generate-tokens ({subject, roles?}), POST /v1/actions/revoke-all-tokens ({subject} -> {revoked})
 
   - id: tn-user-service
     kind: service
@@ -147,18 +143,14 @@ capabilities:
       Shared service-level setup (request logging, property logging) and
       tn-auth-service access-token verification (signature, expiry, issuer,
       `token_use` = `access`) - `AccessTokenVerifier`, which a service creates
-      itself from the public key and issuer. Defines `X-Delegate-User-Token`,
+      itself from the public key and issuer, and which reads the token's `roles` claim
+      (`roles(token)`, `hasRole(token, role)`). Defines `X-Delegate-User-Token`,
       the header in which a service passes a user's access token to another
       service acting on that user's behalf.
     artifact: com.tn.service:tn-service
     repo: tn-service
     contract: n/a (plain library)
     spec: openspec/specs/tn-service/spec.md
-    requested_changes:
-      - by: okayat system-administrators (admin-console series, 2026-10-19), released in 2.1.0
-        summary: >-
-          AccessTokenVerifier reads the `roles` claim of an access token: `roles(token)` and `hasRole(token, role)`. Generic;
-          each service names the role it needs. A refresh token is still never accepted.
 
   - id: tn-client-feign
     kind: library

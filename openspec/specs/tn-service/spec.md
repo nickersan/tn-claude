@@ -37,6 +37,36 @@ without one rejected as unauthenticated.
   has another issuer, or isn't a JWT at all
 - **THEN** verification fails as unauthenticated
 
+### Requirement: Read the roles in a tn-auth-service access token
+The system SHALL let a service read the `roles` claim of an access token that
+passes verification, in order, and ask whether it holds a given role (matched
+exactly). A token with no `roles` claim SHALL have none. A token whose `roles` is
+not a list of strings SHALL be rejected as unauthenticated (401), as SHALL a token
+that fails verification, including a refresh token. A role in a token is what the
+holder was when the session was made, so it does not change for the life of the
+session.
+
+#### Scenario: A token's roles are read in order
+- **WHEN** a service reads the roles of a valid access token whose `roles` claim
+  is `["system-administrator", "support"]`
+- **THEN** it gets both, in that order, and the token holds each of them but not
+  `moderator`, `system` or `System-Administrator`
+
+#### Scenario: A token without roles
+- **WHEN** a service reads the roles of a valid access token with no `roles` claim
+  or an empty one
+- **THEN** it gets none, and the token holds no role
+
+#### Scenario: A refresh token's roles are not read
+- **WHEN** a service reads the roles of a refresh token, or of an expired, foreign
+  or malformed token
+- **THEN** verification fails as unauthenticated
+
+#### Scenario: Roles that are not a list of strings
+- **WHEN** a service reads the roles of a valid access token whose `roles` is a
+  string, or a list of numbers
+- **THEN** verification fails as unauthenticated
+
 ### Requirement: A delegated call carries the user's access token
 The system SHALL define `X-Delegate-User-Token` as the header in which a service
 acting for a user passes that user's access token (the raw JWT) to another

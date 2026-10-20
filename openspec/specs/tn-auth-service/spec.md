@@ -6,8 +6,9 @@ session throughout a system, for an opaque subject id — so any project can
 obtain and refresh a session without implementing token issuance itself. This
 service has no concept of an identifier, an account, or a user: it does not
 resolve, store, or interpret what the subject id means, and it accepts no
-other claim from a caller — every claim beyond the subject (issuer, issued-at,
-expiration, and a fresh token id) is this service's own to add. Resolving an
+other claim from a caller than opaque roles — every claim beyond the subject and
+those (issuer, issued-at, expiration, and a fresh token id) is this service's own
+to add. Resolving an
 identifier (email, phone) to a stable id is entirely another service's
 responsibility — today, `tn-user-service`'s (see that capability's Purpose).
 A system's login flow composes both: resolve the identifier via
@@ -36,15 +37,53 @@ neither creates nor resolves it.
   look up, validate, or create any record for that id beyond what is needed to
   manage the resulting session
 
-### Requirement: The system does not accept caller-supplied claims
-The system SHALL accept only a subject id from the caller; every other claim
-in the issued tokens is this service's own to determine, not the caller's.
+### Requirement: The system does not accept caller-supplied claims beyond roles
+The system SHALL accept only a subject id and, optionally, roles from the
+caller; every other claim in the issued tokens is this service's own to
+determine, not the caller's.
 
-#### Scenario: A caller cannot influence any claim beyond the subject
+#### Scenario: A caller cannot influence any claim beyond the subject and roles
 - **WHEN** a caller requests a token pair for a subject id
 - **THEN** the issued tokens carry only this service's own claims (issuer,
   issued-at, expiration, a token id, and the token type) alongside that
-  subject — nothing the caller supplied beyond the id itself
+  subject and any roles the caller gave — nothing else the caller supplied
+
+### Requirement: A session can carry roles, in its access tokens only
+The system SHALL accept, when issuing a session, an optional list of roles — what
+the subject is, opaque to this service as the subject id is — and SHALL keep them
+with the session and put them in the `roles` claim of every access token it issues
+for that session, including after every refresh, without asking anyone. The refresh
+token SHALL NOT carry them. A request with no roles, or an empty list, SHALL give
+tokens with no `roles` claim. A role that is blank or has whitespace in it SHALL be
+rejected (400) and no session issued. A session that existed before roles were
+introduced SHALL have none.
+
+#### Scenario: Roles are in the access token and not the refresh token
+- **WHEN** a caller requests a token pair for a subject id with the role
+  `system-administrator`
+- **THEN** the access token's `roles` claim is `["system-administrator"]` and the
+  refresh token has no `roles` claim
+
+#### Scenario: A refresh keeps the roles
+- **WHEN** a session issued with roles is refreshed, including a retry within the
+  grace period
+- **THEN** the new access token carries the same roles
+
+#### Scenario: No roles, no claim
+- **WHEN** a caller requests a token pair with no roles or an empty list
+- **THEN** the access token has no `roles` claim
+
+#### Scenario: Each session has its own roles
+- **WHEN** a subject signs in twice, once with roles and once without
+- **THEN** refreshing each gives access tokens with, and without, the roles
+
+#### Scenario: A bad role is refused
+- **WHEN** a caller gives a role that is blank or has whitespace in it
+- **THEN** the system rejects the request and issues no session
+
+#### Scenario: A session from before roles has none
+- **WHEN** a session that existed before roles were introduced is refreshed
+- **THEN** the new access token has no `roles` claim
 
 ### Requirement: Every token states whether it is an access or a refresh token
 The system SHALL include a `token_use` claim in every token it issues, with the
@@ -193,6 +232,28 @@ they expire.
 #### Scenario: A token that cannot name the session to keep is rejected
 - **WHEN** a caller names an access token, a malformed or expired token, a token
   whose session has ended, or a refresh token of another subject
+- **THEN** the system rejects the request and ends no session
+
+### Requirement: Every session of a subject can be ended
+The system SHALL end every session of a subject, for a caller that has removed
+something the sessions were issued for, and SHALL return how many sessions it
+ended. Sessions of other subjects SHALL be unaffected. A request with no subject
+SHALL be rejected. Access tokens already issued remain valid until they expire.
+
+#### Scenario: Every session of the subject ends
+- **WHEN** a subject has two sessions and a caller ends all of them
+- **THEN** the system reports 2 ended and neither can refresh
+
+#### Scenario: Another subject's sessions are unaffected
+- **WHEN** one subject's sessions are all ended
+- **THEN** sessions of other subjects can still be refreshed
+
+#### Scenario: A subject with no sessions
+- **WHEN** a caller ends all the sessions of a subject that has none
+- **THEN** the system reports 0 ended
+
+#### Scenario: A request with no subject is rejected
+- **WHEN** a caller ends all sessions without naming a subject
 - **THEN** the system rejects the request and ends no session
 
 ### Requirement: Expired sessions are removed
