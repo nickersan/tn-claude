@@ -28,6 +28,8 @@ README. Read them first. If the project names no acceptance suites, say so and t
    contract tests (`mvn verify` from a clean `target` when stubs matter: an incremental build can say "stubs are up to
    date" and ship old ones); typecheck, lint and tests for TypeScript repos. Fix failures at the cause. Never skip or
    weaken a test to pass.
+   Check the JaCoCo report for each touched component: new or changed code is covered by that component's own tests,
+   including wiring and lifecycle, never left for the acceptance suites to catch (see the Java testing standard).
 
 3. **Review the change against the spec and the standards.** Always part of finishing, however small the change. Read the whole
    diff of every touched repo, in a fresh pass rather than from memory of writing it, and check:

@@ -82,11 +82,24 @@ new EqualsTester()
   try-with-resources, small private `assertMatch` / `assertNoMatch` helpers, a nested
   `Target` fixture class.
 
+## Every component is tested completely on its own
+
+- Each component, library or service, carries complete tests of its own: every class, every
+  branch, every error and shutdown path, at unit or integration level. Never rely on a
+  project's acceptance suite to catch a component's defects. Acceptance proves the parts fit
+  together; it does not stand in for testing the parts, and its coverage never counts.
+- Wiring is code too: auto-configuration (conditions, back-off, property switches) and
+  lifecycle beans (start, stop, loop, failure) get tests, e.g. with `ApplicationContextRunner`
+  and a fake collaborator. Do not leave them to be exercised only when a service starts.
+- Read the JaCoCo report (`target/site/jacoco/jacoco.csv`) before calling a component done; a
+  class with no coverage, or an uncovered branch, is a missing test, not an exclusion. Exclude
+  only what cannot be tested (`**/Application.class`).
+
 ## Coverage and mutation testing
 
 - **JaCoCo** runs on every `test`; unit and integration executions are merged into one
-  report (`target/site/jacoco`). There is currently **no enforced threshold** — keep
-  coverage meaningful rather than chasing a number, and cover every branch of parsing /
-  comparison / error paths (as the `tn-query` integration tests do exhaustively).
+  report (`target/site/jacoco`). There is currently **no enforced threshold**, but that is
+  not licence to leave gaps: aim for every line and branch, and cover every branch of
+  parsing / comparison / error paths (as the `tn-query` integration tests do exhaustively).
 - **Pitest** mutation testing is available on demand: `mvn test -Dpitest`
   (targets `com.tn.*`). Use it when hardening a critical algorithm.
