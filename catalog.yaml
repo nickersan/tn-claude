@@ -193,8 +193,7 @@ capabilities:
       Postgres. An item is immutable with a never-reused id; replacing a picture is a new item. Images (JPEG, PNG) only to
       start, accepted under a named upload profile (`avatar`: 100 KB, 2048 px a side), judged by content, bounded before
       decoding and re-encoded from pixels so no photo metadata is kept; status leaves room for video (`processing`).
-      Has no authentication of its own (its consumer's BFF is the gate). Reports against an item hide it from all but the
-      member who added it, and staff can remove it (bytes deleted, record kept). Also takes over the avatar tn-user-service
+      Has no authentication of its own (its consumer's BFF is the gate). Staff can remove an item (bytes deleted, record kept). Also takes over the avatar tn-user-service
       holds today (okayat user-avatar-on-media).
     repo: tn-media-service
     status: active
@@ -202,15 +201,14 @@ capabilities:
       POST /v1/media?profile=&owner= (the picture as the body), GET /v1/media/{id}, GET /v1/media/{id}/content,
       DELETE /v1/media/{id}, POST /v1/media/{id}/actions/remove
     requested_changes:
-      - by: okayat report-pictures and review-reported-pictures (admin-console series, 2026-10-19)
+      - by: okayat report-pictures, review-reported-pictures and moderation (admin-console series, revised 2026-10-22)
         summary: >-
-          Reports of an item (reporter, reason `offensive` or `copyright`, optional note, when; open or closed; one per
-          reporter per item). Reading an item or its content returns nothing while any report is open, unless the
-          caller names the member who added it. List items with open reports (oldest first, for staff), close an item's
-          reports, and remove an item as staff (bytes deleted, record and reports kept, reports closed as upheld).
-          An owner replacing or removing an item closes its reports.
+          Staff removal of an item: the bytes deleted, the record kept, and a removed item no longer served. Idempotent. Met
+          by the existing endpoint (the service has no authentication of its own; its consumer's BFF is the gate). No
+          restore is requested: a removed picture is not brought back. Reports, hiding while reported and listing reported
+          items are NOT requested: reports are held by okayat-moderation-service, and reporting changes nothing.
         api: >-
-          POST /v1/media/{id}/reports, GET /v1/media/reports?status=open, POST /v1/media/{id}/reports/actions/close
+          POST /v1/media/{id}/actions/remove
 
   # Services present in the tn layer but not yet catalogued in detail:
   #   tn-data-service(-jdbc/-jpa), tn-directory-service,
