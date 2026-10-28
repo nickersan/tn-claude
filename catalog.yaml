@@ -148,7 +148,8 @@ capabilities:
       the header in which a service passes a user's access token to another
       service acting on that user's behalf.
       Also gives every service that depends on it the Actuator `liveness` and `readiness` health groups
-      (readiness = the service's own datasource where it has one, never another service; details never shown)
+      (readiness = the service's own datasource where it has one, never another service; details never shown; 2.2.1: a service with no
+      datasource starts, as group membership is not validated)
       and exposes `health` and `resilience` by default, merged with what a service exposes
       (requested by okayat, health-endpoint-libraries; `/noop` unchanged).
     artifact: com.tn.service:tn-service
