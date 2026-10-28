@@ -18,7 +18,9 @@ it does not replace judgment. `complete-change` is the back half.
   Start each with a fork (`start_session` with `context: "fork"`, or a subagent where the user has not asked for a
   session), briefed with its slice only: the repo, what done looks like, the tests that prove it.
 - **One repo at a time.** Run slices one after another in dependency order, never two writers at once. A slice is done
-  only when that repo's own suites are green (unit, integration, contract, typecheck/lint). The main thread checks the
+  only when that repo's own suites are green (unit, integration, contract, typecheck/lint). A slice commits locally on a
+  `-SNAPSHOT` version (`mvn install` for what its consumers need) and never pushes: the nightly builds run on another
+  machine, and `complete-change` pushes every repo together, in dependency order, once all are ready. The main thread checks the
   result and the diff before the next fork starts. Nothing moves to the next repo on a red or unrun suite.
 - **Acceptance has its own thread.** A separate thread owns the acceptance scenarios and their helpers. It is not the
   thread writing the implementation.
@@ -55,6 +57,7 @@ it does not replace judgment. `complete-change` is the back half.
 
 - The user's instruction wins on any of this, including the size guide in step 1: say what you are doing differently and
   carry on.
+- No slice pushes. Commit locally; `complete-change` step 8 is the only push.
 - One writer at a time. If a fork is running, do not start another that writes code.
 - A slice that grows past one repo or past its "done when" is a signal to stop and re-slice, not to push on.
 - Keep generated skills (such as the `openspec-*` ones) as they are; the CLI regenerates them.
