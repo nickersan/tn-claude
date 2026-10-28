@@ -82,6 +82,16 @@ new EqualsTester()
   try-with-resources, small private `assertMatch` / `assertNoMatch` helpers, a nested
   `Target` fixture class.
 
+## Contracts are unambiguous
+
+- No two contracts for a path may match the same request. A consumer's stub runner loads every stub of a producer into one WireMock, and
+  where several match it answers with whichever loaded last, an order that differs between Windows and Linux: a consumer's build then
+  passes on one machine and fails on the other.
+- Separate contracts by what they match: a different query value, path, header value or body. A contract for a request without a header
+  matches one that carries it too, so give it its own value (its own search text, id) rather than relying on the others being preferred.
+- Do not use `priority`. It hides the overlap instead of removing it, and makes a stub's answer depend on a rule nobody reads. A contract's
+  description says what sets it apart.
+
 ## Every component is tested completely on its own
 
 - Each component, library or service, carries complete tests of its own: every class, every
