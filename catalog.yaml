@@ -173,7 +173,7 @@ capabilities:
       Requested by okayat (home-feed): shared configuration for protecting service-to-service calls
       (Resilience4j) - a timeout, circuit breaker, bulkhead and rate limiter per service called, with
       retries only for calls declared safe to repeat - for the @HttpExchange clients every service
-      uses. Released 1.1.0. Adds a read-only Actuator endpoint `resilience` (state of each group's breaker, bulkhead and
+      uses. Released 1.1.0; 1.2.0 adds a read-only Actuator endpoint `resilience` (state of each group's breaker, bulkhead and
       rate limiter) and a `half-open-calls` setting (requested by okayat, health-endpoint-libraries).
     spec: openspec/specs/tn-resilience/spec.md
     artifact: com.tn.resilience:tn-resilience
