@@ -93,3 +93,18 @@ unless a service asks it to.
 #### Scenario: A service that doesn't use the verifier is unaffected
 - **WHEN** a service depending on `tn-service` doesn't create a verifier
 - **THEN** it starts and behaves as before
+
+### Requirement: A service says whether it is alive and whether it is ready
+The system SHALL give every service that depends on `tn-service` Actuator's `liveness` and `readiness` health groups, on the port the API is on, with
+details never shown. Liveness SHALL depend only on the process. Readiness SHALL be the readiness state and, where the service has a datasource, that
+datasource, and SHALL NOT depend on any other service or on the state of a circuit breaker. `tn-service` SHALL expose `health` and `resilience` over the
+web by default, merged with what a service exposes (a service's own `env` stays) and overridden by its own settings, and SHALL expose no other endpoint.
+`GET /noop` is unchanged.
+
+#### Scenario: A service whose datasource is unreachable is not ready
+- **WHEN** a service's datasource cannot be reached
+- **THEN** readiness answers 503 and liveness still answers 200
+
+#### Scenario: A service whose dependency is down is still ready
+- **WHEN** a service that calls another is running and the other is down or its breaker is open
+- **THEN** readiness answers that it is up

@@ -147,6 +147,10 @@ capabilities:
       (`roles(token)`, `hasRole(token, role)`). Defines `X-Delegate-User-Token`,
       the header in which a service passes a user's access token to another
       service acting on that user's behalf.
+      Also gives every service that depends on it the Actuator `liveness` and `readiness` health groups
+      (readiness = the service's own datasource where it has one, never another service; details never shown)
+      and exposes `health` and `resilience` by default, merged with what a service exposes
+      (requested by okayat, health-endpoint-libraries; `/noop` unchanged).
     artifact: com.tn.service:tn-service
     repo: tn-service
     contract: n/a (plain library)
@@ -169,7 +173,9 @@ capabilities:
       Requested by okayat (home-feed): shared configuration for protecting service-to-service calls
       (Resilience4j) - a timeout, circuit breaker, bulkhead and rate limiter per service called, with
       retries only for calls declared safe to repeat - for the @HttpExchange clients every service
-      uses. Released 1.1.0.
+      uses. Released 1.1.0. Adds a read-only Actuator endpoint `resilience` (state of each group's breaker, bulkhead and
+      rate limiter) and a `half-open-calls` setting (requested by okayat, health-endpoint-libraries).
+    spec: openspec/specs/tn-resilience/spec.md
     artifact: com.tn.resilience:tn-resilience
     repo: tn-resilience
     contract: n/a (plain library; auto-configured, settings under tn.resilience)
