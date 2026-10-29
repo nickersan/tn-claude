@@ -98,7 +98,7 @@ unless a service asks it to.
 The system SHALL give every service that depends on `tn-service` Actuator's `liveness` and `readiness` health groups, on the port the API is on, with
 details never shown. Liveness SHALL depend only on the process. Readiness SHALL be the readiness state and, where the service has a datasource, that
 datasource, and SHALL NOT depend on any other service or on the state of a circuit breaker. `tn-service` SHALL expose `health` and `resilience` over the
-web by default, merged with what a service exposes (a service's own `env` stays) and overridden by its own settings, and SHALL expose no other endpoint.
+web by default, merged with what a service sets itself and overridden by its own settings, and SHALL expose no other endpoint. Services set none (platform/health).
 `GET /noop` is unchanged.
 
 #### Scenario: A service whose datasource is unreachable is not ready
