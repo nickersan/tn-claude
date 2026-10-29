@@ -333,6 +333,11 @@ spring:
         base-url: ${SPOT_SERVICE_URL:http://localhost:8093}
 ```
 
+- **Every service that calls another depends on `tn-resilience`.** It configures each `@ImportHttpServices` group with a timeout, circuit
+  breaker, bulkhead and rate limiter (retrying only calls declared safe to repeat), and serves the `resilience` Actuator endpoint, so a
+  slow or down dependency does not hold up the caller. A service with an `@ImportHttpServices` client and no `tn-resilience` makes
+  unprotected calls: add the dependency when adding the first client, and cover it with a test that reads the `resilience` endpoint and
+  finds one group per service called.
 - **Not Feign.** Spring Cloud OpenFeign is feature-complete, and it pulls in the
   Spring Cloud release train for something Spring Framework 7 and Boot 4 now do
   natively, backed by the same `RestClient`. Feign must not be used in new or
