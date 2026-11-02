@@ -135,6 +135,7 @@ types:
       deployed environment. Owns no production code. Example: okayat-acceptance.
     applies:
       - conventions
+      - acceptance
 
   local-environment:
     description: >-

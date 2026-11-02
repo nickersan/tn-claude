@@ -55,6 +55,11 @@ kustomize/
   building on another. For example, `okayat-kustomize`'s `self-hosted` component
   holds the Postgres deployment, the generated keys and the datasource patches,
   and both its `local` and `acceptance` overlays use it.
+- **GC logging is a Component the `local` and `acceptance` overlays share**
+  (`okayat-kustomize`'s `jvm-gc-logging`): it sets `JAVA_OPTS` on each JVM service to log the
+  collector's start-up settings and every collection to standard output, so a pod's log shows what
+  its JVM did with memory. It leaves heap sizes to the JVM; see
+  [`acceptance/`](../acceptance/README.md) for why.
 - **An overlay a test suite applies per run has no namespace of its own.** The
   suite creates one per run and applies the overlay into it, so runs never share
   data (`okayat-kustomize`'s `acceptance` overlay and `okayat-acceptance`).

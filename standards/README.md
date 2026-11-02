@@ -25,6 +25,7 @@ type: java-spring-service  ->  conventions + java + maven + spring-boot + kubern
 | `react/` | React web / shared UI | placeholder |
 | `database/` | components owning schema | placeholder |
 | `kubernetes/` | anything deployed to a cluster | placeholder |
+| `acceptance/` | acceptance suites (`acceptance-suite`) | **drafted** |
 
 ## Principles
 
