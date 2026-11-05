@@ -9,7 +9,7 @@ user says otherwise for this change. This skill is the order to do it in; it doe
 user when something fails and the cause is not clear.
 
 **Project specifics come from the project.** Which suites are the acceptance suites, how to run them, their
-prerequisites, and the order repos publish in are in the project's own `CLAUDE.md` (a "Finishing a change" section) or its
+prerequisites, and the order repos publish in are in the project's own `CLAUDE.md` (a "Finishing a change" section, or a doc it points to) or its
 README. Read them first. If the project names no acceptance suites, say so and treat its repos' own suites as the bar.
 
 **Input**: the change or task name (for an OpenSpec project, `openspec list --json` if it is not clear). Announce it:
