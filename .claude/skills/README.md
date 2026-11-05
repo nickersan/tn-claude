@@ -1,11 +1,13 @@
-# Skills
+# Skills (this repo's own)
 
-Status: **placeholder**.
+The OpenSpec skills here (`openspec-*`) are for working on `tn-claude` itself and are
+not published.
 
-Skills published from this repo as the `tn-claude` plugin. Component repos opt in with
-one marketplace entry in their `.claude/settings.json`.
+The skills published to other repos as the `tn` plugin live in [`/skills`](../../skills)
+(`start-change`, `complete-change`). Component repos opt in with one marketplace entry in
+their `.claude/settings.json`.
 
-Planned:
+Ideas not built yet:
 
 - `scaffold-component` — create a new component repo from a template for a given `type`.
 - `standards-check` — review the current diff against the standard sets that apply to

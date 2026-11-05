@@ -1,7 +1,7 @@
 # General conventions
 
-Status: **mostly placeholder** — the documentation, archiving and Comments sections
-are drafted below; the rest is still to be written.
+Status: **partly drafted** — the branch model, documentation, archiving and Comments sections
+are written below; the rest (the list that follows) is still to be written.
 
 Cross-cutting conventions that apply to every component regardless of technology:
 

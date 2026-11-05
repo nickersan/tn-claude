@@ -12,7 +12,8 @@ reused everywhere:
 | `catalog.yaml` | The menu of capabilities the `tn` layer already provides. Projects read this when writing specs. Links to `openspec/specs/<id>` once a capability has a formal contract. |
 | `registry.yaml` | Inventory of `tn`-layer component repos. |
 | `templates/` | Repo skeletons per component type (placeholder for now). |
-| `.claude/skills/` | Skills published as the `tn-claude` plugin (placeholder for now). |
+| `skills/` | Skills published as the `tn` plugin (`/tn:start-change`, `/tn:complete-change`). |
+| `.claude/skills/` | This repo's own OpenSpec skills (not published). |
 | `docs/architecture/` | Cross-cutting architecture notes (placeholder for now). |
 
 ## How a component consumes this
@@ -24,7 +25,8 @@ reused everywhere:
 
 ## Status
 
-Initial draft. The **Java** and **Maven** standards are written; the other standard
+Initial draft. The Java, Maven, Spring Boot, React, TypeScript, logging, database,
+Kubernetes, acceptance and conventions standards have content (some partly); the other standard
 areas are placeholders to be filled in as components of those types appear.
 
 Standards here were distilled from the existing `tn-lang`, `tn-query` and `tn-parent`

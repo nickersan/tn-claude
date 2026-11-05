@@ -20,7 +20,7 @@ It contains no production code. Do not add application logic here.
   acceptance suites green, then commit, push and CI. Keep skills project-neutral: what is particular to a project
   (its acceptance suites, prerequisites, publish order) belongs in that project's own `CLAUDE.md`. Install it once:
   `claude plugin marketplace add <path to this repo>`, then `claude plugin install tn@tn-claude`.
-- `templates/`, `docs/architecture/` — placeholders for now.
+- `templates/`, `docs/architecture/` — placeholder READMEs only, nothing in them yet.
 
 ## Ground rules
 
@@ -46,6 +46,8 @@ It contains no production code. Do not add application logic here.
 
 ## Scope of the current draft
 
-Java and Maven standards are written. `conventions/`, `spring-boot/`, `react/`,
-`database/` and `kubernetes/` are placeholders — flesh them out only when a component
-of that type is being created, and distil from real code where it exists.
+Standards are written for Java, Maven, Spring Boot, React, TypeScript, logging,
+acceptance, database, Kubernetes and general conventions; the last few are partly
+drafted and list what is still to define. Add to them only when a component needs it,
+and distil from real code where it exists. `templates/` and `docs/architecture/` hold
+only a placeholder README.

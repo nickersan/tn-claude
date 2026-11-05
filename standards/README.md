@@ -18,13 +18,15 @@ type: java-spring-service  ->  conventions + java + maven + spring-boot + kubern
 
 | Directory | Applies to | Status |
 |-----------|-----------|--------|
-| `conventions/` | everything | placeholder |
+| `conventions/` | everything | partly drafted |
 | `java/` | any JVM component | **drafted** |
 | `maven/` | any Maven build | **drafted** |
 | `spring-boot/` | Spring Boot services | **drafted** (one file per topic) |
-| `react/` | React web / shared UI | placeholder |
-| `database/` | components owning schema | placeholder |
-| `kubernetes/` | anything deployed to a cluster | placeholder |
+| `react/` | React web / shared UI | **drafted** |
+| `typescript/` | any TypeScript component | **drafted** |
+| `logging/` | long-running services | **drafted** |
+| `database/` | components owning schema | partly drafted |
+| `kubernetes/` | anything deployed to a cluster | **drafted** (non-local overlay still to define) |
 | `acceptance/` | acceptance suites (`acceptance-suite`) | **drafted** |
 
 ## Principles

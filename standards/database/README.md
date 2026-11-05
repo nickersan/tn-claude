@@ -5,7 +5,7 @@ Applies to components that own a relational schema (and conditionally to
 
 The engine and testing sections below are drafted for real — the first services to
 apply them are `tn-auth-service`, `tn-user-service`, and `tn-temporary-token-service`,
-replacing the H2 they use today. Naming/migrations/ownership are still placeholder.
+replacing the H2 they use today. Naming/migrations/ownership are still to be written.
 
 ## Engine — PostgreSQL everywhere, no H2
 
@@ -131,7 +131,7 @@ A container declared directly inside one `@DataJpaTest` class (not via a
 shared base) doesn't have this problem — each class's own static field is
 independent, so the normal `@Testcontainers`/`@Container` form is fine there.
 
-## Still placeholder
+## Still to define
 
 - Migrations: Flyway, versioned scripts, naming, forward-only policy, where
   scripts live.

@@ -7,14 +7,14 @@
 version: 1
 
 standard_sets:
-  - conventions      # general naming / repo / documentation conventions (placeholder)
+  - conventions      # general naming / repo / documentation conventions (partly drafted)
   - java             # JVM language + testing conventions
   - maven            # Maven project structure, dependencies, build, CI
   - spring-boot      # Spring Boot service conventions (one file per topic)
-  - react            # React / web UI conventions (placeholder)
-  - typescript       # framework-agnostic TypeScript conventions (placeholder)
-  - database         # schema, migrations, naming (placeholder)
-  - kubernetes       # deployment / manifests (placeholder)
+  - react            # React / web UI conventions
+  - typescript       # framework-agnostic TypeScript conventions
+  - database         # engine, testing; schema naming/migrations still to define
+  - kubernetes       # deployment / manifests
   - logging          # structured, masked logging for long-running services
 
 types:
