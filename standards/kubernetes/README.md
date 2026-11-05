@@ -7,8 +7,8 @@ inherits, not a fresh design.
 
 ## The shape
 
-- Each deployable `java-spring-service` has a paired **`<name>-container`** repo
-  that builds its Docker image — see `../maven/build-and-ci.md`. The image name
+- Each deployable `java-spring-service` has its Docker image built either by its own
+  repo or by a paired **`<name>-container`** repo — see `../maven/build-and-ci.md`. The image name
   is the bare service name (`oauth-service`, `tn-temporary-token-service`, ...).
 - Each `react-web` UI likewise has a **`<name>-container`** repo (`web-container`)
   that builds an nginx image serving it. nginx also proxies the API path to the

@@ -49,7 +49,7 @@ src/
   it/java,   it/resources          # integration tests     (Failsafe; *IntegrationTest.java)
   ct/java,   ct/resources          # contract tests        (Spring Cloud Contract)
   main/assembly/assembly.xml       # optional; activates the assembly profile
-Dockerfile                         # optional; activates the docker profile
+Dockerfile                         # optional; activates the docker profile (a service's own image build, or a container repo)
 ```
 
 - `src/it/java` and `src/ct/java` are added as test-compile sources by

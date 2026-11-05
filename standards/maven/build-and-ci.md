@@ -34,18 +34,25 @@
 | `assembly` | `src/main/assembly/assembly.xml` exists | `maven-assembly-plugin single` on `package`, `appendAssemblyId=false` |
 | `contracts-producer-java` | `src/ct/java/contracts` exists | Spring Cloud Contract producer, JUnit5, base class/package from `contract-producer.*` properties |
 | `contracts-producer-groovy` | `src/ct/resources/contracts` exists | Spring Cloud Contract producer, Groovy DSL contracts |
-| `docker` | `Dockerfile` exists and `-DskipDocker` not set | `docker build` on `install`, tag `${docker-image-repository}:${project.version}` (image repo defaults to `${project.name}`) — see below, this belongs in a `-container` repo, not a service repo |
+| `docker` | `Dockerfile` exists and `-DskipDocker` not set | `docker build` on `install`, tag `${docker-image-repository}:${project.version}` (image repo defaults to `${project.name}`) — see below: a `-container` repo, or a service that carries its own image build; it needs Docker, so `-DskipDocker` when only the jar is wanted |
 | `pitest` | `-Dpitest` | Pitest `mutationCoverage` over `com.tn.*` |
 
 A component opts into a capability by adding the trigger file, not by editing build
 config.
 
-## The `assembly`/`docker` profiles are for container repos, not service repos
+## The `assembly`/`docker` profiles: in a service repo or a container repo
 
-**Never add a `Dockerfile` or `src/main/assembly/` to a `java-spring-service`
-repo.** These two profiles exist for the *separate* `<name>-container` repo
-(type `java-service-container` — see `component-types.yaml`) that packages an
-already-published service jar into an image. Concretely, in the container repo:
+A `java-spring-service` **may carry its own image build**: a `Dockerfile`,
+`src/main/assembly/assembly.xml` and `start.sh`, and `docker-image-repository`
+(below). Its `mvn install` then builds the image (needs Docker; `-DskipDocker` skips
+it) and the shared workflow deploys the jar and pushes the image, tagged with the
+release version, in one release: no second repo. The assembly's `dependencySet`
+includes the service's own jar and its runtime dependencies.
+
+Or the image is built by a *separate* `<name>-container` repo (type
+`java-service-container` — see `component-types.yaml`) that packages an
+already-published service jar into an image; a service not yet moved, and the
+`tn-*` services until decided, stay this way. Concretely, in the container repo:
 
 - `pom.xml`: `packaging: pom`, a single dependency on the service's own jar
   (`<groupId>com.tn</groupId><artifactId><service-name></artifactId>`, pinned
@@ -74,9 +81,9 @@ already-published service jar into an image. Concretely, in the container repo:
   (e.g. `tn-temporary-token-service`), matching the image name used in the
   kustomize base's `images:` section.
 
-Every `java-spring-service` intended for deployment needs its container repo
-created alongside it — a service with no `<name>-container` repo yet cannot be
-deployed. Check `registry.yaml` before assuming one exists.
+Every `java-spring-service` intended for deployment needs an image build: its own
+(above) or a `<name>-container` repo created alongside it — a service with neither
+cannot be deployed. Check `registry.yaml` before assuming one exists.
 
 ## GitHub Actions
 
@@ -91,10 +98,13 @@ exactly what a push does. In short:
 - The release is committed back (`chore(release): <version> [skip ci]`) and tagged
   `v<version>`, so a pom on `main` declares the last release — there are no SNAPSHOTs.
 - A library or service deploys to GitHub Packages; a `java-service-container` repo
-  pushes its image to `ghcr.io/nickersan/${docker-image-repository}`.
-- A `java-spring-service`'s `build.yaml` names its container repo
-  (`container-repository: <name>-container`). Each release pins the new jar there, as
-  `feat(deps)`/`fix(deps)` to match, which releases a new image.
+  (a `Dockerfile` with `pom` packaging) pushes its image to
+  `ghcr.io/nickersan/${docker-image-repository}`. A service with its own
+  `Dockerfile` (`jar` packaging) does both: deploys the jar and pushes the image.
+- A `java-spring-service` without its own image build names its container repo in
+  `build.yaml` (`container-repository: <name>-container`). Each release pins the new
+  jar there, as `feat(deps)`/`fix(deps)` to match, which releases a new image. One
+  with its own image build names none.
 - The repo needs a `WORKFLOW_TOKEN` secret (a PAT with `repo` and `write:packages`).
 - The workflow's `java-version` (default `'25'`) must match `tn-parent`'s compiler
   release.

@@ -30,10 +30,13 @@ types:
 
   java-spring-service:
     description: >-
-      A Spring Boot service. Produces a jar only — packaging it as a Docker image
-      and deploying it are the job of a paired `<name>-container` repo (type
-      `java-service-container`) and the project's kustomize-deployment repo. Don't
-      add a Dockerfile here.
+      A Spring Boot service. Produces a jar and, by default, is packaged as a Docker
+      image by a paired `<name>-container` repo (type `java-service-container`).
+      A service may instead carry its own image build (`Dockerfile`,
+      `src/main/assembly/`, `docker-image-repository`): the shared workflow then
+      deploys its jar and pushes its image in the same release, and it needs no
+      container repo. Deploying it is the job of the project's kustomize-deployment
+      repo either way.
     applies:
       - conventions
       - java
@@ -48,9 +51,10 @@ types:
   java-service-container:
     description: >-
       Packages an already-published java-spring-service jar into a Docker image.
-      Always a separate repo from the jar it packages (`<name>-container`, e.g.
-      `tn-temporary-token-service-container` for `tn-temporary-token-service`) —
-      never a Dockerfile inside the service repo. Depends on the jar as a normal
+      A separate repo from the jar it packages (`<name>-container`, e.g.
+      `tn-temporary-token-service-container` for `tn-temporary-token-service`),
+      for a service that does not carry its own image build (see
+      `java-spring-service`). Depends on the jar as a normal
       Maven dependency (pulls the published artifact, doesn't build from source),
       which keeps the jar an independently-versioned artifact and lets the
       container repo weave in runtime-only dependencies the jar itself doesn't
