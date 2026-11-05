@@ -88,6 +88,12 @@ unchanged for a small change: steps 1-3 and 5, 7-9 are done in full, and the rev
      then pull the release commit. A service's release also pins itself in its `-container` repo and releases the image:
      wait for that too. Renovate may have moved a dependency in the meantime: rebase over it, do not fight it;
    - the next repo then builds against the released version, not the SNAPSHOT.
+   Repos that do not depend on each other form a **wave**: push the whole wave, wait for CI on all of it, then start the
+   next (a service and its `-container` are separate waves; independent services' stubs share one). Where the project
+   provides a release script (its finishing document says where), run `<script> <repos>` as a dry run first and show the
+   plan: it computes the waves, the version restores, the `-SNAPSHOT` replacements and the checks. Only the user
+   runs its `--execute` (it refuses an agent session); never push by another route to get around it. Whether by script or by hand,
+   check that no `-SNAPSHOT` of any repo remains in a build or package file before each push, and stop at the first CI failure.
    Include the platform or spec repo: the archived change, the synced specs, and any inventory, guidance or config
    changes. Last, align Kustomize and the acceptance suite with the released versions and image tags (no SNAPSHOT left in
    either), push them, wait for their CI, and run the project's quick acceptance check against the released versions. Say
