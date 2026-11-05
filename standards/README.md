@@ -21,7 +21,7 @@ type: java-spring-service  ->  conventions + java + maven + spring-boot + kubern
 | `conventions/` | everything | placeholder |
 | `java/` | any JVM component | **drafted** |
 | `maven/` | any Maven build | **drafted** |
-| `spring-boot/` | Spring Boot services | placeholder |
+| `spring-boot/` | Spring Boot services | **drafted** (one file per topic) |
 | `react/` | React web / shared UI | placeholder |
 | `database/` | components owning schema | placeholder |
 | `kubernetes/` | anything deployed to a cluster | placeholder |

@@ -59,7 +59,7 @@ public UserSession verifyPasscode(Identifier identifier, String passcode) throws
   can say.
 - REST endpoints are the exception to the rule: their error contract is the HTTP
   statuses documented with `@ApiResponse` on the `api` interface
-  (`../spring-boot/README.md`), not a `throws` clause.
+  (`../spring-boot/api-documentation.md`), not a `throws` clause.
 
 ## Messages
 

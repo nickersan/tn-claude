@@ -162,8 +162,7 @@ capabilities:
     summary: >-
       OpenFeign client support (a 404-to-Optional aspect, auto-configuration).
       Deprecated: kept for reference only. Feign must not be used. New HTTP
-      clients are @HttpExchange interfaces, per standards/spring-boot/README.md
-      ("HTTP clients").
+      clients are @HttpExchange interfaces, per standards/spring-boot/http-clients.md.
     artifact: com.tn.client:tn-client-feign
     repo: tn-client-feign
     status: deprecated

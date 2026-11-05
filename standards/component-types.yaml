@@ -10,7 +10,7 @@ standard_sets:
   - conventions      # general naming / repo / documentation conventions (placeholder)
   - java             # JVM language + testing conventions
   - maven            # Maven project structure, dependencies, build, CI
-  - spring-boot      # Spring Boot service conventions (placeholder)
+  - spring-boot      # Spring Boot service conventions (one file per topic)
   - react            # React / web UI conventions (placeholder)
   - typescript       # framework-agnostic TypeScript conventions (placeholder)
   - database         # schema, migrations, naming (placeholder)
