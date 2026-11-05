@@ -104,7 +104,10 @@ exactly what a push does. In short:
 - A `java-spring-service` without its own image build names its container repo in
   `build.yaml` (`container-repository: <name>-container`). Each release pins the new
   jar there, as `feat(deps)`/`fix(deps)` to match, which releases a new image. One
-  with its own image build names none.
+  with its own image build names none. When a service moves from a container repo, its
+  existing ghcr.io package stays linked to the container repo: add the service repo to the
+  package's **Manage Actions access** (role Write) before its first release, or the image
+  push fails with `permission_denied: write_package` (the jar is already released by then).
 - The repo needs a `WORKFLOW_TOKEN` secret (a PAT with `repo` and `write:packages`).
 - The workflow's `java-version` (default `'25'`) must match `tn-parent`'s compiler
   release.
