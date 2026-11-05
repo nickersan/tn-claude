@@ -25,6 +25,29 @@ it does not replace judgment. `complete-change` is the back half.
 - **Acceptance has its own thread.** A separate thread owns the acceptance scenarios and their helpers. It is not the
   thread writing the implementation.
 
+## Small changes
+
+Decide at the start, and say it out loud: "Small change: <why>" or "Normal change: <which test failed>". A change is
+**small** only when all of these hold:
+
+- it touches **one capability** (one spec) and **at most 2 repos**, counting the acceptance repo;
+- it adds **no new component** and **no new UI screen**;
+- existing acceptance scenarios already cover the behaviour, or **one** scenario is added or changed;
+- it changes no contract that other repos consume beyond the 2, and needs no new decision between real alternatives.
+
+If any fails, it is a normal change. The user can override either way ("treat it as small" / "do it in full"); their word
+wins and you say what that changes. Re-check when a slice grows: a small change that stops meeting the test becomes normal,
+and you say so.
+
+A small change keeps every rule of this skill (one main thread, forked slices, one repo at a time, local commits only,
+no push) and trims the ceremony around them:
+
+- `proposal.md` is short (why, what changes, impact) with `tasks.md`; no `design.md` unless a real decision needs recording.
+- One or two slices; skip the size guide in step 1.
+- Acceptance: when no scenario is added or changed, there is no draft and no draft review (name the scenarios that already
+  cover it). When one is added or changed, draft it and get the user's review before any slice, as in step 3.
+- Step 5 still applies in full to any acceptance change made during implementation.
+
 ## Steps
 
 1. **Size it.** Read the proposal, design, delta specs and tasks. As a guide (not a rule), a change that needs more than
@@ -51,7 +74,8 @@ it does not replace judgment. `complete-change` is the back half.
    before going on. Never weaken or delete a scenario to make it pass. A change in behaviour also updates the delta spec.
 
 6. **Hand over to `complete-change`** when every slice is done and the approved acceptance set exists. A change with no
-   reviewed acceptance tests is not ready to complete.
+   reviewed acceptance tests is not ready to complete (a small change that adds or changes no scenario relies on the
+   existing ones it named).
 
 ## Guardrails
 

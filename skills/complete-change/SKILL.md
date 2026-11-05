@@ -11,6 +11,9 @@ user when something fails and the cause is not clear.
 **Project specifics come from the project.** Which suites are the acceptance suites, how to run them, their
 prerequisites, and the order repos publish in are in the project's own `CLAUDE.md` (a "Finishing a change" section, or a doc it points to) or its
 README. Read them first. If the project names no acceptance suites, say so and treat its repos' own suites as the bar.
+A change `start-change` called **small** may use a smaller acceptance bar in step 6 *if the project names one* (for
+example a smoke set plus the touched capabilities' scenarios). Without one, the full bar applies. Everything else is
+unchanged for a small change: steps 1-3 and 5, 7-9 are done in full, and the review in step 3 is never skipped.
 
 **Input**: the change or task name (for an OpenSpec project, `openspec list --json` if it is not clear). Announce it:
 "Finishing: <name>".
@@ -61,7 +64,7 @@ README. Read them first. If the project names no acceptance suites, say so and t
      archive as it is.
    - Do not archive a change with unfinished tasks without the user's say-so.
 
-6. **Run the project's full acceptance suites on the final code**, every platform it has, in full, against images or
+6. **Run the project's acceptance suites (the bar it names for this kind of change) on the final code**, every platform it has, in full, against images or
    builds made from the final code (SNAPSHOT builds are fine here; step 8 moves them to the released versions). Note anything the run needs first (registry logins, a JDK, an emulator). Long runs
    are normal: start early, let them finish, and do not stop or narrow one to finish sooner without the user saying so.
    Say plainly anything that was not run.
