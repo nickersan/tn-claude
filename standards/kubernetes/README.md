@@ -1,16 +1,16 @@
 # Kubernetes standard
 
-Applies to `java-service-container` and `web-container` (what gets deployed) and
+Applies to `java-spring-service` and `web-container` (what gets deployed) and
 `kustomize-deployment` (how it's deployed) components. Distilled from `pilch`'s
 existing `kustomize/` + `*-container` repos — the working pattern this layer
 inherits, not a fresh design.
 
 ## The shape
 
-- Each deployable `java-spring-service` has its Docker image built either by its own
-  repo or by a paired **`<name>-container`** repo — see `../maven/build-and-ci.md`. The image name
+- Each deployable `java-spring-service` has its Docker image built by its own
+  repo — see `../maven/build-and-ci.md`. The image name
   is the bare service name (`oauth-service`, `tn-temporary-token-service`, ...).
-- Each `react-web` UI likewise has a **`<name>-container`** repo (`web-container`)
+- Each `react-web` UI has a **`<name>-container`** repo (`web-container`)
   that builds an nginx image serving it. nginx also proxies the API path to the
   BFF, so the browser talks to one origin and needs no CORS. The BFF's URL comes
   from the base ConfigMap at startup (nginx's `envsubst` templates), so one image
@@ -84,8 +84,7 @@ kustomize/
   place; each service's Deployment patch points `SPRING_DATASOURCE_URL` at it
   instead of an embedded file path. `runAsUser`/`fsGroup` still apply to whatever
   writes to the persisted volume — now the Postgres deployment, not each service.
-  `h2` is no longer a dependency of the container repos that made this switch
-  (see `../maven/build-and-ci.md`) — don't carry it forward into new ones.
+  `h2` is no longer a runtime dependency of any image — don't add it back.
 - **Keys go in a `Secret`.** Anything a service needs locally that is key
   material (e.g. JWT signing keys) comes from a `secretGenerator` in the overlay.
   It reads an env file that a script in the repo generates and Git ignores, so
@@ -104,7 +103,7 @@ kustomize/
   natively, rather than changing the base Services. Docker Desktop maps a
   LoadBalancer Service to the host's port, including on the LAN.
 - **Images:** Docker Desktop's Kubernetes uses the images in the local Docker,
-  so the container repos' builds are deployable as they are. A rebuilt image
+  so the services' own image builds are deployable as they are. A rebuilt image
   keeps its tag, so it needs a `kubectl rollout restart` to be picked up.
 - Non-local environments (staging, prod, ...) get their own overlay following the
   same shape; where a managed service replaces something local runs itself (RDS

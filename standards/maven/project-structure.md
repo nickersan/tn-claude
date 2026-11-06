@@ -32,8 +32,7 @@ Every Java component POM declares:
   since the last tag releases, and commits the new version back. So the pom on
   `main` declares the last release, and there are no SNAPSHOTs (see
   `build-and-ci.md`, GitHub Actions).
-- Depend on released versions only, e.g. a container repo's pin on its service jar,
-  which CI moves on with each release.
+- Depend on released versions only.
 - Commit messages follow Conventional Commits, since they decide the bump. The
   release notes are generated on each GitHub release; a `CHANGELOG.md` from the
   release-please days is history, no longer maintained.
@@ -49,7 +48,7 @@ src/
   it/java,   it/resources          # integration tests     (Failsafe; *IntegrationTest.java)
   ct/java,   ct/resources          # contract tests        (Spring Cloud Contract)
   main/assembly/assembly.xml       # optional; activates the assembly profile
-Dockerfile                         # optional; activates the docker profile (a service's own image build, or a container repo)
+Dockerfile                         # optional; activates the docker profile (a service's own image build)
 ```
 
 - `src/it/java` and `src/ct/java` are added as test-compile sources by

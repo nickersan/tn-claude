@@ -34,56 +34,36 @@
 | `assembly` | `src/main/assembly/assembly.xml` exists | `maven-assembly-plugin single` on `package`, `appendAssemblyId=false` |
 | `contracts-producer-java` | `src/ct/java/contracts` exists | Spring Cloud Contract producer, JUnit5, base class/package from `contract-producer.*` properties |
 | `contracts-producer-groovy` | `src/ct/resources/contracts` exists | Spring Cloud Contract producer, Groovy DSL contracts |
-| `docker` | `Dockerfile` exists and `-DskipDocker` not set | `docker build` on `install`, tag `${docker-image-repository}:${project.version}` (image repo defaults to `${project.name}`) — see below: a `-container` repo, or a service that carries its own image build; it needs Docker, so `-DskipDocker` when only the jar is wanted |
+| `docker` | `Dockerfile` exists and `-DskipDocker` not set | `docker build` on `install`, tag `${docker-image-repository}:${project.version}` (image repo defaults to `${project.name}`) — see below: a service's own image build; it needs Docker, so `-DskipDocker` when only the jar is wanted |
 | `pitest` | `-Dpitest` | Pitest `mutationCoverage` over `com.tn.*` |
 
 A component opts into a capability by adding the trigger file, not by editing build
 config.
 
-## The `assembly`/`docker` profiles: in a service repo or a container repo
+## The `assembly`/`docker` profiles: a service's own image build
 
-A `java-spring-service` **may carry its own image build**: a `Dockerfile`,
-`src/main/assembly/assembly.xml` and `start.sh`, and `docker-image-repository`
-(below). Its `mvn install` then builds the image (needs Docker; `-DskipDocker` skips
-it) and the shared workflow deploys the jar and pushes the image, tagged with the
-release version, in one release: no second repo. The assembly's `dependencySet`
-includes the service's own jar and its runtime dependencies.
+A deployable `java-spring-service` **carries its own image build**, and that is the only way a Java service
+gets an image (the separate `<name>-container` repos were retired on 2026-11-06 and archived). In the service repo:
 
-Or the image is built by a *separate* `<name>-container` repo (type
-`java-service-container` — see `component-types.yaml`) that packages an
-already-published service jar into an image; a service not yet moved, and the
-`tn-*` services until decided, stay this way. Concretely, in the container repo:
-
-- `pom.xml`: `packaging: pom`, a single dependency on the service's own jar
-  (`<groupId>com.tn</groupId><artifactId><service-name></artifactId>`, pinned
-  version — a real Maven dependency, not a source build), plus any
-  **runtime-only** dependency the image needs that the jar itself doesn't carry.
-  This is the "weave in additional runtime dependencies" the split is for: the
-  jar stays a clean, independently-versioned artifact; the image can still add
-  what it needs without the jar depending on it. (The original example here was
-  an embedded-H2 driver for local deployment — since superseded: local now runs
-  real PostgreSQL too, see `../database/README.md` and `../kubernetes/README.md`.
-  The mechanism is still valid, just currently has no live example — the `h2`
-  runtime dependency should be removed from `tn-auth-service-container` and
-  `tn-temporary-token-service-container` as part of adopting that, not carried
-  into the new `tn-user-service-container`.)
 - `src/main/assembly/assembly.xml`: lays out `bin/` (a `start.sh`, copied
   verbatim — `java -cp lib/*.jar <fully-qualified Application class>`, not
-  `java -jar`, since there's no fat jar) and `lib/` (all resolved dependency
-  jars, via a `<dependencySet>`) into a flat directory. This is what the
+  `java -jar`, since there's no fat jar) and `lib/` (the service's own jar and its
+  runtime dependencies, via a `<dependencySet>`) into a flat directory. This is what the
   `assembly` profile packages and what `docker`'s `IMAGE_DIR` build-arg points at.
 - `Dockerfile`: minimal (`eclipse-temurin:<version>-jdk-alpine` is the current
   base), creates a dedicated low-privilege user for the service and runs as it
   (matches the Kubernetes deployment's `runAsUser`/`fsGroup` — see
   `../kubernetes/README.md`), copies the assembled directory, entrypoint is
   `start.sh`.
+- `.gitattributes`: `*.sh text eol=lf`, so `start.sh` keeps LF on a Windows checkout.
 - `docker-image-repository` property: set explicitly to the bare service name
   (e.g. `tn-temporary-token-service`), matching the image name used in the
   kustomize base's `images:` section.
 
-Every `java-spring-service` intended for deployment needs an image build: its own
-(above) or a `<name>-container` repo created alongside it — a service with neither
-cannot be deployed. Check `registry.yaml` before assuming one exists.
+Its `mvn install` then builds the image `${docker-image-repository}:${project.version}` (needs Docker;
+`-DskipDocker` skips it), and the shared workflow deploys the jar and pushes the image, tagged with the
+release version and `latest`, in one release. A deployable service without this build cannot be deployed;
+check `registry.yaml` before assuming one has it.
 
 ## GitHub Actions
 
@@ -97,17 +77,12 @@ exactly what a push does. In short:
   only builds.
 - The release is committed back (`chore(release): <version> [skip ci]`) and tagged
   `v<version>`, so a pom on `main` declares the last release — there are no SNAPSHOTs.
-- A library or service deploys to GitHub Packages; a `java-service-container` repo
-  (a `Dockerfile` with `pom` packaging) pushes its image to
-  `ghcr.io/nickersan/${docker-image-repository}`. A service with its own
-  `Dockerfile` (`jar` packaging) does both: deploys the jar and pushes the image.
-- A `java-spring-service` without its own image build names its container repo in
-  `build.yaml` (`container-repository: <name>-container`). Each release pins the new
-  jar there, as `feat(deps)`/`fix(deps)` to match, which releases a new image. One
-  with its own image build names none. When a service moves from a container repo, its
-  existing ghcr.io package stays linked to the container repo: add the service repo to the
-  package's **Manage Actions access** (role Write) before its first release, or the image
-  push fails with `permission_denied: write_package` (the jar is already released by then).
+- A library or service deploys to GitHub Packages; a service with a `Dockerfile` (`jar`
+  packaging) also pushes its image to `ghcr.io/nickersan/${docker-image-repository}`.
+- A ghcr.io package created by another repo (a retired container repo, say) stays linked to
+  it: add the service repo to the package's **Manage Actions access** (role Write) before its
+  first release, or the image push fails with `permission_denied: write_package` (the jar is
+  already released by then).
 - The repo needs a `WORKFLOW_TOKEN` secret (a PAT with `repo` and `write:packages`).
 - The workflow's `java-version` (default `'25'`) must match `tn-parent`'s compiler
   release.
@@ -124,7 +99,6 @@ exactly what a push does. In short:
   branch is fast-forwarded onto `main` as `fix(deps):`, and `main`'s build releases it.
 - A major update - Spring Boot 5, say - waits as a pull request for a person, and is
   committed as `feat(deps)!:`: a major of something we build on is a major of ours.
-- A container repo's pin on its service is CI's to move (above), not Renovate's.
 
 ## Distribution
 

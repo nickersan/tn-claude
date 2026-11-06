@@ -55,23 +55,6 @@ components:
     repo: tn-temporary-token-service
     notes: Generic OTP-style token generate/verify. No identity concept — reusable as-is.
 
-  - name: tn-temporary-token-service-container
-    type: java-service-container
-    groupId: com.tn
-    repo: tn-temporary-token-service-container
-    notes: >-
-      Builds the deployable image for tn-temporary-token-service. Current, not
-      deprecated (previously miscatalogued as such here — corrected after
-      confirming its pom.xml still targets the active jar). Nothing in tn is in
-      production, so "current" here means "the one to build on", not "serving
-      traffic". As of add-identity-and-notification-capabilities §6.6: tn-parent
-      pin bumped from the very stale 0.0.01-SNAPSHOT to 2.2.0-SNAPSHOT, h2
-      removed, the jar dependency's groupId fixed (was still com.tn, stale since
-      the com.tn.service fix in §2.2), and the base image bumped to
-      eclipse-temurin:25-jdk-alpine — it had the same Java 21/25 mismatch 3.13
-      found and flagged as unverified-but-likely in tn-auth-service-container;
-      confirmed and fixed here too by actually running the built image.
-
   - name: tn-auth-service
     type: java-spring-service
     groupId: com.tn.service
@@ -81,19 +64,6 @@ components:
       capabilities change (archived) — mints/refreshes a JWT for an opaque
       subject id, no identifier/account/user concept of its own. Supersedes
       tn-oauth-service.
-
-  - name: tn-auth-service-container
-    type: java-service-container
-    groupId: com.tn
-    repo: tn-auth-service-container
-    notes: >-
-      Builds the deployable image for tn-auth-service — the oauth->auth rename
-      had moved the jar repo but never replaced tn-oauth-service-container;
-      this closes that gap. Base image is eclipse-temurin:25-jdk-alpine
-      (tn-parent targets Java 25) — confirmed by actually running the built
-      image, not just building it; the sibling repos' Java 21 base would crash
-      with UnsupportedClassVersionError against jars built to this pom's
-      release target.
 
   - name: tn-user-service
     type: java-spring-service
@@ -106,16 +76,6 @@ components:
       user is authenticated. Own hand-written controller (REST CRUD +
       POST /v1/actions/find-or-create), replacing tn-data-service's generic
       DataController.
-
-  - name: tn-user-service-container
-    type: java-service-container
-    groupId: com.tn
-    repo: tn-user-service-container
-    notes: >-
-      Builds the deployable image for tn-user-service — no container repo
-      existed for this service before now. Base image is
-      eclipse-temurin:25-jdk-alpine (tn-parent targets Java 25), following
-      tn-auth-service-container's precedent from the same change.
 
   - name: tn-notification-service
     type: java-spring-service
@@ -134,25 +94,15 @@ components:
       not decided, and archiving the rest of that change doesn't resolve it).
       Requested by okayat-platform / initial-capabilities. See catalog.yaml.
 
-  - name: tn-notification-service-container
-    type: java-service-container
-    groupId: com.tn
-    repo: tn-notification-service-container
-    notes: >-
-      Builds the deployable image for tn-notification-service — no container
-      repo existed for this service before now (it didn't exist at all before
-      this change). Base image is eclipse-temurin:25-jdk-alpine, following
-      tn-auth-service-container's precedent. Unlike the other two new container
-      repos from this change, this one reaches full Spring Boot startup when
-      run standalone (no missing datasource) — tn-notification-service is
-      stateless.
-
   # Services present but not yet catalogued in detail (type java-spring-service, to
   # be confirmed):
   #   tn-service, tn-data-service, tn-data-service-jdbc, tn-data-service-jpa,
   #   tn-directory-service, tn-element-service, tn-file-service, tn-storage-service
 
   # Deprecated / superseded (do not build on):
-  #   tn-oauth-service (superseded by tn-auth-service), tn-oauth-service-container
-  #   (pairs with the deprecated jar; tn-auth-service-container should replace it,
-  #   not extend it), tn-service-deprecated, tn-query-mono
+  #   tn-oauth-service (superseded by tn-auth-service; its container repo is archived),
+  #   tn-service-deprecated, tn-query-mono
+
+  # Every deployable tn service above builds and releases its own image (Dockerfile,
+  # src/main/assembly/, docker-image-repository); the tn-*-service-container repos were
+  # archived on 2026-11-06 (okayat-platform's merge-tn-container-builds).

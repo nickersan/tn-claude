@@ -49,7 +49,7 @@ unchanged for a small change: steps 1-3 and 5, 7-9 are done in full, and the rev
    pushed, so a repo pushed ahead of the others breaks them. Work through the touched repos in dependency order (a
    service's stubs before the service that consumes them, a library before the app, the app before its front ends; the
    project says what its chain is): set the repo's version to a `-SNAPSHOT` of the next release, `mvn install` it (a
-   container repo's, or a service that carries its own image build, docker profile builds its image in the install phase, tagged with that version; `-DskipDocker` when only the jar is needed), point the consumer
+   service's docker profile builds its image in the install phase, tagged with that version; `-DskipDocker` when only the jar is needed), point the consumer
    at the SNAPSHOT and test the consumer against it. Local acceptance and Kustomize may refer to the SNAPSHOT versions and
    image tags. Commit locally as each repo is finished. Do not copy unpublished builds into a consumer to make it pass.
    Commit messages use conventional types: `feat` and `fix` release, so choose them on purpose. Add the trailer the
@@ -85,11 +85,11 @@ unchanged for a small change: steps 1-3 and 5, 7-9 are done in full, and the rev
    - put the version back to the one on `origin/main` (the last release), and replace every `-SNAPSHOT` dependency on a
      repo already released with its released version; a pushed pom never contains a SNAPSHOT of another repo;
    - commit, pull with rebase, push, and wait for the repo's CI to release (the session's watchers, not a polling loop),
-     then pull the release commit. A service without its own image build also pins itself in its `-container` repo and releases the image:
+     then pull the release commit. A repo with a `-container` repo (a web app) also pins itself there, which releases the image:
      wait for that too. Renovate may have moved a dependency in the meantime: rebase over it, do not fight it;
    - the next repo then builds against the released version, not the SNAPSHOT.
    Repos that do not depend on each other form a **wave**: push the whole wave, wait for CI on all of it, then start the
-   next (a service and its `-container`, where it has one, are separate waves; independent services' stubs share one). Where the project
+   next (a web app and its `-container` are separate waves; independent services' stubs share one). Where the project
    provides a release script (its finishing document says where), run `<script> <repos>` as a dry run first and show the
    plan: it computes the waves, the version restores, the `-SNAPSHOT` replacements and the checks. Only the user
    runs its `--execute` (it refuses an agent session); never push by another route to get around it. Whether by script or by hand,
