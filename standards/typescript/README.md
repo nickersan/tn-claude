@@ -2,7 +2,8 @@
 
 Framework-agnostic TypeScript conventions for a `typescript-client-library`
 component, also followed by `react-web` and `native-ui` components alongside their
-own framework standard (`react/`). The reference implementation is `okayat-client`.
+own framework standard (`react/`). The reference implementation is `@nickersan/okayat-client`
+(`packages/client` of `okayat-app`).
 
 ## Tooling
 

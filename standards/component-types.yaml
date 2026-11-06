@@ -3,6 +3,10 @@
 #
 # Standard set names correspond to directories under standards/.
 # "conditional" entries apply only when the stated condition holds.
+#
+# A type describes a package. A repo is usually one component, but npm packages that always change together
+# may share a repo as workspaces released with one version (okayat-app holds a typescript-client-library and
+# a react-library); the repo then declares the type of its main package and names the others.
 
 version: 1
 
@@ -99,7 +103,7 @@ types:
       React hooks and plain logic shared by a project's react-web and native-ui
       components: services and their context, data hooks, validation. Depends on
       React and its data library, never on react-dom or React Native. Example:
-      okayat-app.
+      @nickersan/okayat-app (packages/app of okayat-app).
     applies:
       - conventions
       - typescript
@@ -109,7 +113,7 @@ types:
     description: >-
       A framework-agnostic TypeScript package, typically capturing what a BFF
       provides for one or more frontends to consume (web and/or native). Not tied
-      to React. Example: okayat-client.
+      to React. Example: @nickersan/okayat-client (packages/client of okayat-app).
     applies:
       - conventions
       - typescript

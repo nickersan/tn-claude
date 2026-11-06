@@ -8,7 +8,7 @@ libraries; this file covers what's React-specific. The reference implementation 
 ## Framework and build
 
 - **Vite + React + React Router**, a single-page app. All data comes from a BFF
-  through the project's `typescript-client-library` (e.g. `okayat-client`), so
+  through the project's `typescript-client-library` (e.g. `@nickersan/okayat-client`), so
   there's no server rendering, and the build is static files.
 - **The app calls the BFF on its own origin.** The Vite dev server proxies `/v1`
   to the BFF (`BFF_URL`, read with Vite's `loadEnv`), and the deployed container
