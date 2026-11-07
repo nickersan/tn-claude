@@ -85,11 +85,11 @@ unchanged for a small change: steps 1-3 and 5, 7-9 are done in full, and the rev
    - put the version back to the one on `origin/main` (the last release), and replace every `-SNAPSHOT` dependency on a
      repo already released with its released version; a pushed pom never contains a SNAPSHOT of another repo;
    - commit, pull with rebase, push, and wait for the repo's CI to release (the session's watchers, not a polling loop),
-     then pull the release commit. A repo with a `-container` repo (a web app) also pins itself there, which releases the image:
-     wait for that too. Renovate may have moved a dependency in the meantime: rebase over it, do not fight it;
+     then pull the release commit. A repo with a `-container` repo (a web app in the older shape) also pins itself there, which
+     releases the image: wait for that too. Renovate may have moved a dependency in the meantime: rebase over it, do not fight it;
    - the next repo then builds against the released version, not the SNAPSHOT.
    Repos that do not depend on each other form a **wave**: push the whole wave, wait for CI on all of it, then start the
-   next (a web app and its `-container` are separate waves; independent services' stubs share one). Where the project
+   next (a web app and its `-container`, where one remains, are separate waves; independent services' stubs share one). Where the project
    provides a release script (its finishing document says where), run `<script> <repos>` as a dry run first and show the
    plan: it computes the waves, the version restores, the `-SNAPSHOT` replacements and the checks. Only the user
    runs its `--execute` (it refuses an agent session); never push by another route to get around it. Whether by script or by hand,

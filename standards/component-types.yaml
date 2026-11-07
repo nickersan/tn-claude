@@ -71,9 +71,13 @@ types:
 
   react-web:
     description: >-
-      A React single-page or server-rendered web UI. Produces a static build
-      only — serving it is the job of a paired `<name>-container` repo (type
-      `web-container`). Don't add a Dockerfile here.
+      A React single-page or server-rendered web UI. A deployable one carries
+      its own image: a `Dockerfile`, `nginx/` config and `scripts/build-image.sh`
+      that builds the checkout and packs the static build with nginx, which
+      serves it and proxies its API path to the project's BFF, so the browser
+      talks to one origin (the BFF's address comes from the environment, not the
+      image). It is `private` and its release pushes only the image, named for
+      the repo.
     applies:
       - conventions
       - react
@@ -81,11 +85,10 @@ types:
 
   web-container:
     description: >-
-      Packages a react-web component's build into a Docker image that serves it
-      (nginx) and proxies its API path to the project's BFF, so the browser talks
-      to one origin. The BFF's address comes from the environment, not the
-      image. A separate repo from the web UI (`<name>-container`, e.g.
-      `okayat-web-container` for `okayat-web`) that pins a released build of it.
+      The older shape: a separate repo (`<name>-container`) that pins a released
+      build of a react-web and packs it with nginx. New web UIs carry their own
+      image instead (see react-web); OK AT retired its two (e.g.
+      `okayat-web-container`) on 2026-11-07. Kept for a project that still has one.
     applies:
       - conventions
       - kubernetes

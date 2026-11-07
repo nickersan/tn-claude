@@ -1,6 +1,6 @@
 # Kubernetes standard
 
-Applies to `java-spring-service` and `web-container` (what gets deployed) and
+Applies to `java-spring-service` and `react-web` (what gets deployed) and
 `kustomize-deployment` (how it's deployed) components. Distilled from `pilch`'s
 existing `kustomize/` + `*-container` repos — the working pattern this layer
 inherits, not a fresh design.
@@ -10,8 +10,9 @@ inherits, not a fresh design.
 - Each deployable `java-spring-service` has its Docker image built by its own
   repo — see `../maven/build-and-ci.md`. The image name
   is the bare service name (`oauth-service`, `tn-temporary-token-service`, ...).
-- Each `react-web` UI has a **`<name>-container`** repo (`web-container`)
-  that builds an nginx image serving it. nginx also proxies the API path to the
+- Each deployable `react-web` UI builds its own nginx image serving it, from its
+  own repo (`Dockerfile`, `nginx/`, `scripts/build-image.sh`; the separate
+  `<name>-container` repos are the older shape). nginx also proxies the API path to the
   BFF, so the browser talks to one origin and needs no CORS. The BFF's URL comes
   from the base ConfigMap at startup (nginx's `envsubst` templates), so one image
   runs in every environment. Its `/noop` answers from nginx itself.

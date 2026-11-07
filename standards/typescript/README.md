@@ -77,5 +77,6 @@ CI publishes, never a person: `main` is the only branch, and each push to it run
 shared `npm.yaml` workflow in [`nickersan/actions`](https://github.com/nickersan/actions)
 from the repo's `.github/workflows/build.yaml`. A `feat` or `fix` since the last tag
 bumps the version, commits it back, tags it and publishes; see that repo's README. A
-`react-web` app is published the same way (its dependencies are all `devDependencies`,
-since the build bundles them), so its `web-container` repo can pin a release.
+`react-web` app keeps its dependencies in `devDependencies` (the build bundles them); one
+that carries its own image (a `Dockerfile`) is `"private": true`, so its release verifies,
+builds and pushes the image and publishes no package.
