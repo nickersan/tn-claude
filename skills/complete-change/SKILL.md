@@ -91,8 +91,10 @@ unchanged for a small change: steps 1-3 and 5, 7-9 are done in full, and the rev
    Repos that do not depend on each other form a **wave**: push the whole wave, wait for CI on all of it, then start the
    next (a web app and its `-container`, where one remains, are separate waves; independent services' stubs share one). Where the project
    provides a release script (its finishing document says where), run `<script> <repos>` as a dry run first and show the
-   plan: it computes the waves, the version restores, the `-SNAPSHOT` replacements and the checks. Only the user
-   runs its `--execute` (it refuses an agent session); never push by another route to get around it. Whether by script or by hand,
+   plan: it computes the waves, the version restores, the `-SNAPSHOT` replacements and the checks. Then ask the user in the
+   session whether to release, and run its `--execute` only after a yes for that release (OK AT's script takes `--confirmed` from an
+   agent; the project's finishing document says how its script is told). A yes covers that release only; ask again for the next.
+   Never push by another route to get around the script. Whether by script or by hand,
    check that no `-SNAPSHOT` of any repo remains in a build or package file before each push, and stop at the first CI failure.
    Include the platform or spec repo: the archived change, the synced specs, and any inventory, guidance or config
    changes. Last, align Kustomize and the acceptance suite with the released versions and image tags (no SNAPSHOT left in
@@ -105,8 +107,8 @@ unchanged for a small change: steps 1-3 and 5, 7-9 are done in full, and the rev
 
 ## Guardrails
 
-- Nothing is pushed until every touched repo is green and ready (steps 1-7). Push only in step 8, in dependency order. A
-  repo that cannot be finished holds all the pushes, and the report says so.
+- Nothing is pushed until every touched repo is green and ready (steps 1-7). Push only in step 8, in dependency order, and only
+  after the user says yes to that release in the session. A repo that cannot be finished holds all the pushes, and the report says so.
 - A change that has not been reviewed against its spec and the standards (step 3) is not finished, however green the suites. A fix the
   review makes puts the suites, and the acceptance run, back to unrun for the code it touched.
 - Green means a suite ran in full on the final code and passed. A subset, an old run, or a rerun of only the failures is
