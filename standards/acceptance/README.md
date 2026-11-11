@@ -68,6 +68,15 @@ suite drives.
   as far as is bounded. A poll that can outlast the wait never gets a second look, and reports
   nothing. Every wait that can time out says, in its error, what was there and what was wanted.
 
+## Time is unit-tested, never waited for
+
+- **A scenario never waits for the wall clock or sleeps for time to pass.** A rule that depends on the current time (the current
+  hour, now rounded up, an expiry) is unit-tested with an injected clock, in the repo that owns the rule; acceptance checks only
+  what does not depend on the minute, and a spec scenario left to the unit test gets a coverage exclusion naming it. Two
+  spot-concurrency scenarios waited for the clock to clear a five-minute mark so "now rounded up" would not move under them: up
+  to five minutes each per platform (290 s seen in one Android scenario), to prove what okayat-app's freeTimes tests already
+  proved on a fixed clock in milliseconds. (The user's rule since 2026-11-11.)
+
 ## Services under test
 
 - **Heap sizes are left alone until measured.** In a measured comparison on nine Android
