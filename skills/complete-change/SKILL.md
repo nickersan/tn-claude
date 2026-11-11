@@ -1,19 +1,20 @@
 ---
 name: complete-change
-description: Finish a feature or task properly - every touched repo's suites, a review of the change against its spec and the standards, the publish chain, the specs synced and the OpenSpec change archived, the project's full acceptance suites green on the final code, then commit locally, push in dependency order and CI. Use when the work is done, or the user says to finish, complete, wrap up or ship a feature, task or change.
+description: Finish a feature or task properly - every touched repo's suites, a review of the change against its spec and the standards, the publish chain, the specs synced and the OpenSpec change archived, the change's acceptance scenarios (smoke plus the touched capabilities, every platform) green on the final code, then commit locally, push in dependency order and CI. Use when the work is done, or the user says to finish, complete, wrap up or ship a feature, task or change.
 ---
 
 Finish a change in a tn-layer project. A change is not done, committed, pushed or archived as done until every suite that
-could have been affected is green on the final code, and that includes the project's full acceptance suites, unless the
-user says otherwise for this change. This skill is the order to do it in; it does not replace judgment. Stop and tell the
+could have been affected is green on the final code, and that includes the change's acceptance scenarios: the smoke scenarios
+plus every scenario of the capabilities it touched, on every platform (the acceptance standard, `standards/acceptance/README.md`,
+"What finishes a change"). The full acceptance suites run only when the user asks for them for this change; the nightly run covers
+the rest. This skill is the order to do it in; it does not replace judgment. Stop and tell the
 user when something fails and the cause is not clear.
 
 **Project specifics come from the project.** Which suites are the acceptance suites, how to run them, their
 prerequisites, and the order repos publish in are in the project's own `CLAUDE.md` (a "Finishing a change" section, or a doc it points to) or its
 README. Read them first. If the project names no acceptance suites, say so and treat its repos' own suites as the bar.
-A change `start-change` called **small** may use a smaller acceptance bar in step 6 *if the project names one* (for
-example a smoke set plus the touched capabilities' scenarios). Without one, the full bar applies. Everything else is
-unchanged for a small change: steps 1-3 and 5, 7-9 are done in full, and the review in step 3 is never skipped.
+A change `start-change` called **small** has the same acceptance bar; steps 1-3 and 5, 7-9 are done in full, and the review in
+step 3 is never skipped. A project with no nightly run of its full suites says so, and its changes finish on the full suites.
 
 **Input**: the change or task name (for an OpenSpec project, `openspec list --json` if it is not clear). Announce it:
 "Finishing: <name>".
@@ -64,10 +65,11 @@ unchanged for a small change: steps 1-3 and 5, 7-9 are done in full, and the rev
      archive as it is.
    - Do not archive a change with unfinished tasks without the user's say-so.
 
-6. **Run the project's acceptance suites (the bar it names for this kind of change) on the final code**, every platform it has, in full, against images or
+6. **Run the change's acceptance scenarios on the final code**: the smoke scenarios and every scenario of the capabilities the change
+   touched, on every platform the project has, without the scenarios that take the environment down (outages run nightly), against images or
    builds made from the final code (SNAPSHOT builds are fine here; step 8 moves them to the released versions). Note anything the run needs first (registry logins, a JDK, an emulator). Long runs
    are normal: start early, let them finish, and do not stop or narrow one to finish sooner without the user saying so.
-   Say plainly anything that was not run.
+   Say plainly what ran and that the rest of the suites is left to the nightly run. Run the full suites only when the user asks.
 
 7. **Triage every failure; never retry until green.** Decide which it is, and say so:
    - *the change* - fix the code;

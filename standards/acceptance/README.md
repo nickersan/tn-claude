@@ -5,6 +5,20 @@ Applies to `acceptance-suite` components (`okayat-acceptance`). Builds on
 [`android-emulator.md`](android-emulator.md); this file is what holds for any platform the
 suite drives.
 
+## What finishes a change
+
+- **A change finishes on its own scenarios, not the whole suite.** The bar is the smoke scenarios plus every scenario of the
+  capabilities the change touched, on every platform the suite drives, run on the final code. The full suite runs only when the
+  user asks for it for that change. (The user's rule since 2026-11-11: a full web and Android run took hours per change and found
+  nothing the change's own scenarios did not.)
+- **The full suite runs every night.** A scheduled run of the whole suite on every platform, from the checkouts as they are, catches
+  what a change's scenarios could not see, and names the commits that could have caused each new break. Read its report at the
+  start of a session. A project without a nightly run says so, and its changes finish on the full suite until it has one.
+- **Scenarios that take the environment down run only at night.** Outage scenarios (a service stopped mid-scenario) disturb
+  everything around them; a change's run leaves them out, even where they are tagged with a touched capability.
+- **Say what was left to the nightly run.** A finish reports which capabilities' scenarios ran on which platforms, and that the
+  rest of the suite is the nightly run's. "Green" is only for what ran.
+
 ## A failing run is a finding, and a restarted run teaches nothing
 
 - **Read the failure's own message before changing anything.** A suite run takes an hour or
