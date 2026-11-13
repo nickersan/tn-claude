@@ -215,6 +215,14 @@ capabilities:
           items are NOT requested: reports are held by okayat-moderation-service, and reporting changes nothing.
         api: >-
           POST /v1/media/{id}/actions/remove
+      - by: okayat post-pictures (2026-11-13)
+        change: okayat-platform openspec/changes/post-pictures (design.md Decision 6)
+        summary: >-
+          The hourly upload limit is counted per owner and upload profile, and each profile may set its own `upload-limit` and
+          `upload-window`, defaulting to the global ones, so a project that sets neither sees no change. okayat sets a
+          `post-picture` profile (500 KB, 1600 px, 40 an hour) beside `avatar` (10 an hour, the global default).
+        config: >-
+          tn.media-service.profiles.<name>.upload-limit, tn.media-service.profiles.<name>.upload-window
 
   # Services present in the tn layer but not yet catalogued in detail:
   #   tn-data-service(-jdbc/-jpa), tn-directory-service,
