@@ -1,9 +1,10 @@
 ---
 name: complete-change
-description: Finish a feature or task properly - every touched repo's suites, a review of the change against its spec and the standards, the publish chain, the specs synced and the OpenSpec change archived, the change's acceptance scenarios (smoke plus the touched capabilities, every platform) green on the final code, then commit locally, push in dependency order and CI. Use when the work is done, or the user says to finish, complete, wrap up or ship a feature, task or change.
+description: Finish a feature or task properly - every touched repo's suites, a review of the change against its spec and the standards, the publish chain, the specs synced and the OpenSpec change archived, every component released (each on its own, smoke-tested), the change's acceptance scenarios (smoke plus the touched capabilities, every platform) green on the released code, then the specs, Kustomize and acceptance pushed. Use when the work is done, or the user says to finish, complete, wrap up or ship a feature, task or change.
 ---
 
-Finish a change in a tn-layer project. A change is not done, committed, pushed or archived as done until every suite that
+Finish a change in a tn-layer project. Its component repos are released one by one as their slices are done (see
+"Releasing a repo"); the change is not done, and is not archived as done, until every suite that
 could have been affected is green on the final code, and that includes the change's acceptance scenarios: the smoke scenarios
 plus every scenario of the capabilities it touched, on every platform (the acceptance standard, `standards/acceptance/README.md`,
 "What finishes a change"). The full acceptance suites run only when the user asks for them for this change; the nightly run covers
@@ -46,15 +47,10 @@ step 3 is never skipped. A project with no nightly run of its full suites says s
      and secrets or personal data in code, tests or logs.
    Use `/code-review` for the correctness pass where it is available. Fix what the review finds, at the cause, and re-run the
    suites it touches (step 2); say in the report what was found and fixed. A review that finds nothing says what it covered.
-4. **Integrate locally on `-SNAPSHOT` versions; push nothing yet.** The nightly builds run on another machine from what is
-   pushed, so a repo pushed ahead of the others breaks them. Work through the touched repos in dependency order (a
-   service's stubs before the service that consumes them, a library before the app, the app before its front ends; the
-   project says what its chain is): set the repo's version to a `-SNAPSHOT` of the next release, `mvn install` it (a
-   service's docker profile builds its image in the install phase, tagged with that version; `-DskipDocker` when only the jar is needed), point the consumer
-   at the SNAPSHOT and test the consumer against it. Local acceptance and Kustomize may refer to the SNAPSHOT versions and
-   image tags. Commit locally as each repo is finished. Do not copy unpublished builds into a consumer to make it pass.
-   Commit messages use conventional types: `feat` and `fix` release, so choose them on purpose. Add the trailer the
-   session asks for.
+4. **Every touched component repo is released.** `start-change` releases each slice as it is done (see "Releasing a
+   repo"). Check that each touched repo's work is on `origin/main` and released, with its smoke run green. Anything not yet
+   released (a fix from the review in step 3, or a change made without slices) is released now the same way, in
+   dependency order. The acceptance repo and the platform or spec repo are not released here; step 8 does them.
 
 5. **Sync the specs and archive the change** (OpenSpec projects: the `openspec-archive-change` skill or `/opsx:archive`),
    before the final acceptance run, because an acceptance coverage check usually reads the main specs:
@@ -66,8 +62,8 @@ step 3 is never skipped. A project with no nightly run of its full suites says s
    - Do not archive a change with unfinished tasks without the user's say-so.
 
 6. **Run the change's acceptance scenarios on the final code**: the smoke scenarios and every scenario of the capabilities the change
-   touched, on every platform the project has, without the scenarios that take the environment down (outages run nightly), against images or
-   builds made from the final code (SNAPSHOT builds are fine here; step 8 moves them to the released versions). Note anything the run needs first (registry logins, a JDK, an emulator). Long runs
+   touched, on every platform the project has, without the scenarios that take the environment down (outages run nightly), against the
+   released versions of every touched repo (images built from the released checkouts, or the released images). Note anything the run needs first (registry logins, a JDK, an emulator). Long runs
    are normal: start early, let them finish, and do not stop or narrow one to finish sooner without the user saying so.
    Say plainly what ran and that the rest of the suites is left to the nightly run. Run the full suites only when the user asks.
 
@@ -78,30 +74,38 @@ step 3 is never skipped. A project with no nightly run of its full suites says s
      right;
    - *the environment* - an image that does not hold the code you think it does, a hung emulator, a missing login: fix
      it, or tell the user what they need to do.
-   Calling a failure pre-existing needs evidence that it fails the same way without the change. Rerun fixes with a subset
-   or `--last-failed`, but finish with one full run on the final code.
+   Calling a failure pre-existing needs evidence that it fails the same way without the change. A fix to a component is
+   released (see "Releasing a repo"), never rolled back. Rerun fixes with a subset or `--last-failed`, but finish with one
+   full run on the final released code.
 
-8. **Release: push in dependency order and wait for CI at each repo.** Only when everything above is green in every touched
-   repo. CI sets the version itself from the conventional commits since the last tag and ignores the one the pom
-   declares, so for each repo, in the order of step 4:
-   - put the version back to the one on `origin/main` (the last release), and replace every `-SNAPSHOT` dependency on a
-     repo already released with its released version; a pushed pom never contains a SNAPSHOT of another repo;
-   - commit, pull with rebase, push, and wait for the repo's CI to release (the session's watchers, not a polling loop),
-     then pull the release commit. A repo with a `-container` repo (a web app in the older shape) also pins itself there, which
-     releases the image: wait for that too. Renovate may have moved a dependency in the meantime: rebase over it, do not fight it;
-   - the next repo then builds against the released version, not the SNAPSHOT.
-   Repos that do not depend on each other form a **wave**: push the whole wave, wait for CI on all of it, then start the
-   next (a web app and its `-container`, where one remains, are separate waves; independent services' stubs share one). Where the project
-   provides a release script (its finishing document says where), run `<script> <repos>` as a dry run first and show the
-   plan: it computes the waves, the version restores, the `-SNAPSHOT` replacements and the checks. Then ask the user in the
-   session whether to release, and run its `--execute` only after a yes for that release (OK AT's script takes `--confirmed` from an
-   agent; the project's finishing document says how its script is told). A yes covers that release only; ask again for the next.
-   Never push by another route to get around the script. Whether by script or by hand,
-   check that no `-SNAPSHOT` of any repo remains in a build or package file before each push, and stop at the first CI failure.
-   Include the platform or spec repo: the archived change, the synced specs, and any inventory, guidance or config
-   changes. Last, align Kustomize and the acceptance suite with the released versions and image tags (no SNAPSHOT left in
-   either), push them, wait for their CI, and run the project's quick acceptance check against the released versions. Say
-   what the full run on the SNAPSHOT builds covered and what was rerun on the released ones.
+8. **Release what is left: the specs, Kustomize and acceptance.** Only when everything above is green. The components are
+   already released (step 4); push the platform or spec repo (the archived change, the synced specs, any inventory,
+   guidance or config changes), then align Kustomize and the acceptance suite with the released versions and image tags
+   and push them, through the project's release script as in "Releasing a repo" (a yes from the user for this release
+   too). The acceptance repo goes last, so the nightly run only meets the new scenarios once everything they test is out.
+
+## Releasing a repo
+
+Each component repo is released on its own, in dependency order, as soon as its slice is done (`start-change`), not held
+for the rest of the change. This is safe only when the release breaks no released consumer (changes only add; removing or
+renaming takes two releases) and every call between repos has a contract: the repo's own unit, integration and contract
+tests are then what it is released on, and the smoke run checks its wiring into the platform.
+
+1. Its own suites are green from a clean build (step 2) and its diff is reviewed (step 3, for that repo's diff).
+2. Its build declares the version on `origin/main` (CI sets the version itself from the conventional commits since the last
+   tag and ignores the declared one) and depends on no `-SNAPSHOT` of another repo: a dependency on a provider changed in
+   this change points at the provider's release. Commit messages use conventional types: `feat` and `fix` release, so
+   choose them on purpose. Add the trailer the session asks for.
+3. Push through the project's release script where it has one (its finishing document says where): run `<script> <repo>`
+   as a dry run, show the plan, ask the user in the session whether to release, and run its `--execute` only after a yes
+   for that release (OK AT's script takes `--confirmed` from an agent; the project's finishing document says how its script is
+   told). A yes covers that release only; ask again for the next. Never push by another route to get around the script.
+   Without a script: pull with rebase, check no `-SNAPSHOT` of any repo remains in a build or package file, push.
+4. Wait for the repo's CI to release (the session's watchers, not a polling loop), then pull the release commit. Renovate may
+   have moved a dependency in the meantime: rebase over it, do not fight it. Stop at the first CI failure.
+5. Run the project's smoke scenarios against the release, with every other component at its current release: web for a
+   service or BFF, every platform for an app or front end. One release and one smoke run at a time (acceptance needs a quiet
+   machine). A red smoke run stops the chain; triage it as in step 7 and fix it with another release, never by rolling back.
 
 9. **Tear down and report.** Remove kept test environments and stop emulators or servers you started. Then report
    plainly: what changed in each repo and its version, which suites ran and their totals, anything not run or left open,
@@ -109,8 +113,10 @@ step 3 is never skipped. A project with no nightly run of its full suites says s
 
 ## Guardrails
 
-- Nothing is pushed until every touched repo is green and ready (steps 1-7). Push only in step 8, in dependency order, and only
-  after the user says yes to that release in the session. A repo that cannot be finished holds all the pushes, and the report says so.
+- A component repo is released only when its own suites are green and its diff reviewed, in dependency order, compatible with
+  every released consumer, and only after the user says yes to that release in the session; its smoke run follows before
+  anything else is released. The specs, Kustomize and the acceptance repo are pushed only in step 8, once the acceptance run
+  is green.
 - A change that has not been reviewed against its spec and the standards (step 3) is not finished, however green the suites. A fix the
   review makes puts the suites, and the acceptance run, back to unrun for the code it touched.
 - Green means a suite ran in full on the final code and passed. A subset, an old run, or a rerun of only the failures is
