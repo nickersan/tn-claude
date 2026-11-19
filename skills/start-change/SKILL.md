@@ -38,6 +38,10 @@ it does not replace judgment. `complete-change` is the back half.
     web for a service or BFF, every platform for an app or front end.
   - **The acceptance repo is released last**, by `complete-change`, so the nightly run never fails on scenarios for a
     feature still being built.
+  - **Back ends release without asking; front ends wait for review.** A library, service, BFF or client/app package
+    is released as soon as its suites are green and its diff is reviewed, without asking the user first. Web and mobile
+    stop when built and green, for the user to review before release. This is standing: do not ask it at the start of
+    each change.
   How to release a repo is `complete-change`'s "Releasing a repo".
 - **Acceptance has its own thread.** A separate thread owns the acceptance scenarios and their helpers. It is not the
   thread writing the implementation.
@@ -104,8 +108,8 @@ and smoke-tested) and trims the ceremony around them:
 
 - The user's instruction wins on any of this, including the size guide in step 1: say what you are doing differently and
   carry on.
-- A slice is released only when its own suites are green and its diff is reviewed, after the user's yes for that release,
-  and never one that breaks a released consumer. The acceptance repo is not released by a slice.
+- A slice is released only when its own suites are green and its diff is reviewed, and never one that breaks a released
+  consumer. A web or mobile slice also waits for the user's review and yes; other slices do not ask. The acceptance repo is not released by a slice.
 - One writer per repo. A second fork that writes code may start only in another repo and only when it needs nothing
   unreleased from the running one; otherwise wait.
 - A slice that grows past one repo or past its "done when" is a signal to stop and re-slice, not to push on.

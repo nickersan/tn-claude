@@ -97,9 +97,14 @@ tests are then what it is released on, and the smoke run checks its wiring into 
    this change points at the provider's release. Commit messages use conventional types: `feat` and `fix` release, so
    choose them on purpose. Add the trailer the session asks for.
 3. Push through the project's release script where it has one (its finishing document says where): run `<script> <repo>`
-   as a dry run, show the plan, ask the user in the session whether to release, and run its `--execute` only after a yes
-   for that release (OK AT's script takes `--confirmed` from an agent; the project's finishing document says how its script is
-   told). A yes covers that release only; ask again for the next. Never push by another route to get around the script.
+   as a dry run, show the plan, then run its `--execute` (OK AT's script takes `--confirmed` from an agent; the project's
+   finishing document says how its script is told). Who says go is a standing rule, not a question per change:
+   - *A back-end or shared component* (a library, service, BFF, or a client or app package that is not itself a user-facing
+     front end) is released without asking, once step 1 holds: suites green from a clean build and the diff reviewed.
+     Say in the session that you are releasing it and why it is ready.
+   - *A user-facing front end* (web, mobile) stops before release: tell the user it is built and green, say how to see it,
+     and release it only after their yes for that release. A yes covers that release only.
+   The user can tighten or loosen this for a change; their word wins. Never push by another route to get around the script.
    Without a script: pull with rebase, check no `-SNAPSHOT` of any repo remains in a build or package file, push.
 4. Wait for the repo's CI to release (the session's watchers, not a polling loop), then pull the release commit. Renovate may
    have moved a dependency in the meantime: rebase over it, do not fight it. Stop at the first CI failure.
@@ -114,7 +119,8 @@ tests are then what it is released on, and the smoke run checks its wiring into 
 ## Guardrails
 
 - A component repo is released only when its own suites are green and its diff reviewed, in dependency order, compatible with
-  every released consumer, and only after the user says yes to that release in the session; its smoke run follows before
+  every released consumer; a user-facing front end (web, mobile) also waits for the user's review and yes in the session
+  ("Releasing a repo", step 3). Its smoke run follows before
   anything else is released. The specs, Kustomize and the acceptance repo are pushed only in step 8, once the acceptance run
   is green.
 - A change that has not been reviewed against its spec and the standards (step 3) is not finished, however green the suites. A fix the
