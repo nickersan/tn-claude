@@ -104,9 +104,14 @@ types:
   react-library:
     description: >-
       React hooks and plain logic shared by a project's react-web and native-ui
-      components: services and their context, data hooks, validation. Depends on
-      React and its data library, never on react-dom or React Native. Example:
-      @nickersan/okayat-app (packages/app of okayat-app).
+      components: services and their context, data hooks, validation. Its main
+      entry depends on React and its data library, never on react-dom or React
+      Native, so every app can import it. Web-only code may sit on a subpath
+      entry of its own (e.g. /editor, /web) that uses react-dom, imported only by
+      web code (a react-web app, or a mobile app's DOM component); its main entry
+      never re-exports it. Never React Native. Examples: @nickersan/okayat-app
+      (packages/app of okayat-app); @nickersan/okayat-rich-text, whose /editor
+      and /web entries draw with react-dom.
     applies:
       - conventions
       - typescript
