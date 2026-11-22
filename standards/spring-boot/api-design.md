@@ -71,3 +71,11 @@ The acting user still travels separately, as a delegate user token (see `delegat
 authorization ("is the caller an administrator?") keeps working. Where only the
 user themselves may change a membership (following), the service rejects a path
 user who isn't the token's subject with 403, which costs one comparison.
+
+## Nothing sensitive in a URL
+
+A URL - path and query - never holds anything sensitive: no token, passcode or key, and no email address, phone number or part of one
+(set by the user on 2026-11-22). URLs are logged (every service writes a line per request with its path and query), kept in browser
+history and proxy logs, and sent on in `Referer`. Opaque ids (a user's id, a spot's id) and ordinary search text are fine. Anything
+sensitive goes in the body of a `POST` - a search by part of an email address is `POST /v1/users/actions/search` with the text in the
+body, not `GET /v1/users?q=...`. Masking a query parameter by name in the log encoder is a safety net, not a reason to put one there.
