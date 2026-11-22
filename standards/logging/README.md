@@ -1,6 +1,7 @@
 # Logging standard
 
-Applies to `java-spring-service` components (long-running services). Not `java-cli`
+Applies to `java-spring-service` components (long-running services); "Levels" and "Correlation" below also apply to the front ends
+(web, mobile) and their client packages. Not `java-cli`
 (interactive CLIs use plain human-readable output) or `java-library` (a library emits
 SLF4J log statements but doesn't own the encoder/appender configuration this standard
 governs — that's the application's concern).
@@ -99,6 +100,29 @@ config values at boot, not application events at runtime — and every
 that service's `Application.java`) **in addition to**, not instead of, the
 structured/masked business-log setup above. Add both, don't treat one as
 covering the other.
+
+## Levels
+
+The levels mean the same on the server and in the apps (web, mobile, admin), set by the user on 2026-11-22:
+
+- **DEBUG** - low-level detail: that something is about to happen, and that it has. Off in a running service; kept on the device in an app,
+  never sent.
+- **INFO** - a narrative of what a user did: read in order for one action id, the lines tell the story of that action. The one request line
+  each service writes per request is INFO, as is an app's line when an action starts and finishes. Detail that only helps when
+  debugging belongs at DEBUG, even when it is "about to / has happened" of something a user did.
+- **WARN** - a recoverable error that was handled: a call retried, a breaker open and a fallback shown, a request refused and the user told
+  (a clash, a validation error the app shows), a client's bad input. The system carried on.
+- **ERROR** - an unrecoverable error: the action failed and nothing handled it (an unexpected exception answered 500, an app crash or
+  its error boundary).
+
+A request refused for a reason the user can act on (4xx) is not an ERROR on the server; where it is worth a line beyond the request line,
+it is WARN. Log an error once, where it is handled, not at every layer it passes through.
+
+## Correlation
+
+Every line carries the action it is part of (`traceId`), who it is for (`userId`, or `sessionId` before sign-in), the client (`client`),
+and the component that wrote it (`service.name`, `service.version`). `tn-service` puts these on a service's lines with no code in the
+service; the apps put the same on theirs. Never put them in the message.
 
 ## What logging is for here
 
