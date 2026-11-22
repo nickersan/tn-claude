@@ -45,6 +45,12 @@ capabilities:
     summary: Parent POM aligning Java level, dependency versions, plugin config and test-layer wiring for all JVM builds.
     artifact: com.tn:tn-parent
     repo: tn-parent
+    requested_changes:
+      - by: okayat correlated-logging series (2026-11-22)
+        change: openspec/changes/correlated-logging
+        summary: >-
+          `spring-boot-maven-plugin` writes `build-info` for every consumer, so tn-service can put the service's name and version on
+          every log line.
 
   - id: tn-temporary-token-service
     kind: service
@@ -156,6 +162,13 @@ capabilities:
     repo: tn-service
     contract: n/a (plain library)
     spec: openspec/specs/tn-service/spec.md
+    requested_changes:
+      - by: okayat correlated-logging series (2026-11-22)
+        change: openspec/changes/correlated-logging
+        summary: >-
+          Every log line carries the action (W3C trace id, continued and sent on), who it is for (`userId` from a verified token,
+          `sessionId`, `client`, as baggage; an edge discards an incoming `userId`) and its source (`service.name`, `service.version`).
+          Propagation only, no spans exported.
 
   - id: tn-client-feign
     kind: library
