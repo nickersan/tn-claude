@@ -74,8 +74,9 @@ user who isn't the token's subject with 403, which costs one comparison.
 
 ## Nothing sensitive in a URL
 
-A URL - path and query - never holds anything sensitive: no token, passcode or key, and no email address, phone number or part of one
-(set by the user on 2026-11-22). URLs are logged (every service writes a line per request with its path and query), kept in browser
-history and proxy logs, and sent on in `Referer`. Opaque ids (a user's id, a spot's id) and ordinary search text are fine. Anything
-sensitive goes in the body of a `POST` - a search by part of an email address is `POST /v1/users/actions/search` with the text in the
-body, not `GET /v1/users?q=...`. Masking a query parameter by name in the log encoder is a safety net, not a reason to put one there.
+A URL - path and query - never holds anything sensitive (set by the user on 2026-11-22): no token, passcode or key, and no identifier a
+person gives as theirs - the email address or phone number they sign in with, or one they submit to be stored. Those go in a request
+body. URLs are logged (every service writes a line per request with its path and query), kept in browser history and proxy logs, and sent
+on in `Referer`. Opaque ids (a user's id, a spot's id) are fine, and so are search phrases: what someone types to find something is not
+sensitive, even when it is part of an email address (the admin console's user search). Masking a query parameter by name in the log
+encoder is a safety net, not a reason to put a secret there.

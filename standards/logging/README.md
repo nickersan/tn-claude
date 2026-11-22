@@ -82,7 +82,7 @@ Treat this list as a minimum, not exhaustive — when in doubt, mask it:
   token value) — this is the single highest-value thing to get right; a leaked OTP
   in a log is a direct account-takeover path.
 - JWT access and refresh token values.
-- Full identifier values (email address, phone number) — these are PII. They never go in a URL (`spring-boot/api-design.md`, "Nothing sensitive in a URL"), so the request line, which logs path and query, never carries them. Where the
+- Full identifier values (email address, phone number) — these are PII. An identifier a person gives as theirs never goes in a URL (`spring-boot/api-design.md`, "Nothing sensitive in a URL"), so the request line, which logs path and query, does not carry it; a search phrase in a query is not sensitive and is logged as it is. Where the
   identifier itself is useful for debugging, log a stable non-reversible reference
   (e.g. the account's internal id) instead of the raw value; if the raw value must
   appear, mask part of it (e.g. `j***@example.com`, `+44 7*** ***890`).
