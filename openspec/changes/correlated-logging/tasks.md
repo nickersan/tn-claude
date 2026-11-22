@@ -5,7 +5,7 @@ that roll it in (`member-app-log-ids`, `service-log-ids`). Each repo is released
 Compatibility: both only add. A service on the old tn-service ignores `traceparent` and `baggage`, as now.
 
 ## 1. tn-parent - done when `mvn verify` is green, released
-- [ ] 1.1 `spring-boot-maven-plugin` runs `build-info` for every consumer. Verify on a consumer build that
+- [x] 1.1 `spring-boot-maven-plugin` runs `build-info` for every deployable service (the `assembly` profile; libraries get none, as their jars share `lib/` with the service), released as 4.4.0. Verify on a consumer build that
       `META-INF/build-info.properties` holds the artifact and version. Release.
 
 ## 2. tn-service - after 1, done when `mvn verify` is green, JaCoCo checked, released
