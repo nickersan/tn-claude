@@ -19,6 +19,7 @@ signed in) and its source, so an aggregator can show the system as a whole.
 - **An edge trusts no caller's user**: a service set as an edge (a BFF) discards an incoming `userId`, so a client cannot make its lines look
   like someone else's.
 - **Where on every line**: `service.name` and `service.version`, from the service's build info.
+- **A line per request**: one INFO line for each request a service answers (method, path and query, status, time taken), without its body or headers and not for probes. Today the request filter logs only at DEBUG, which is off, so a successful request leaves no line.
 - **No change for anything else**: no spans are exported (propagation only), and a service sent no trace or baggage starts and behaves as
   before.
 

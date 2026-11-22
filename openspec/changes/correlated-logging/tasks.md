@@ -16,4 +16,5 @@ Compatibility: both only add. A service on the old tn-service ignores `tracepare
       tests named for "The user from a verified token", "A verified token wins over a sent user" and "A client asserts a user".
 - [ ] 2.3 `service.name` and `service.version` on the Logback context from `BuildProperties` (fallbacks as in the design). Verify with a
       test named for "Name and version on every line", reading the encoded JSON.
-- [ ] 2.4 Verify "A service that is sent nothing": the existing integration tests pass unchanged. Update `catalog.yaml`'s summary. Release.
+- [ ] 2.4 One INFO request line per request (method, path and query, status, time taken; no body or headers; not for health or `/noop`). Verify with tests named for "A request is logged once" and "Probes are not logged".
+- [ ] 2.5 Verify "A service that is sent nothing": the existing integration tests pass unchanged. Update `catalog.yaml`'s summary. Release.
