@@ -18,3 +18,10 @@ Compatibility: both only add. A service on the old tn-service ignores `tracepare
       test named for "Name and version on every line", reading the encoded JSON.
 - [x] 2.4 One INFO request line per request (method, path and query, status, time taken; no body or headers; not for health or `/noop`). Verify with tests named for "A request is logged once" and "Probes are not logged".
 - [x] 2.5 Verify "A service that is sent nothing": the existing integration tests pass unchanged. Update `catalog.yaml`'s summary. Released as 2.4.0.
+
+## 3. tn-service - query parameters as fields, done when `mvn verify` is green, JaCoCo checked, released
+Asked by the user on 2026-11-22: the request line keeps the query, as fields of the JSON line. 2.4.0 has no consumers yet, so `path`
+becomes the path alone with no compatibility step.
+- [ ] 3.1 `path` without the query; `query` an object of the parameters (a parameter given more than once as a list), absent when there is
+      none; masked by name as any field is. Verify with tests for no query, one parameter, a repeated parameter, an encoded value and a
+      masked parameter name. Release.

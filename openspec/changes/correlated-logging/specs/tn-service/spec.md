@@ -57,12 +57,12 @@ The system SHALL export no spans, and a service sent no trace or baggage SHALL s
 - **THEN** it answers as before, and its lines differ only by the new fields
 
 ### Requirement: A service logs each request it answers
-The system SHALL write one INFO line for each HTTP request a service answers, with the method, the path and query, the status and the time
+The system SHALL write one INFO line for each HTTP request a service answers, with the method, the path, each query parameter as a field of its own, the status and the time
 taken, and SHALL NOT write the request's body or headers on it. Health and `/noop` requests SHALL NOT be logged.
 
 #### Scenario: A request is logged once
 - **WHEN** a service answers a request
-- **THEN** it writes one line with the method, path and query, status and time taken, with the request's trace and baggage fields
+- **THEN** it writes one line with the method, path, query parameters as fields, status and time taken, with the request's trace and baggage fields
 
 #### Scenario: Probes are not logged
 - **WHEN** a service answers a health or `/noop` request
