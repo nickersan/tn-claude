@@ -22,6 +22,6 @@ Compatibility: both only add. A service on the old tn-service ignores `tracepare
 ## 3. tn-service - query parameters as fields, done when `mvn verify` is green, JaCoCo checked, released
 Asked by the user on 2026-11-22: the request line keeps the query, as fields of the JSON line. 2.4.0 has no consumers yet, so `path`
 becomes the path alone with no compatibility step.
-- [ ] 3.1 `path` without the query; `query` an object of the parameters (a parameter given more than once as a list), absent when there is
+- [x] 3.1 `path` without the query; `query` an object of the parameters (a parameter given more than once as a list), absent when there is
       none; masked by name as any field is. Verify with tests for no query, one parameter, a repeated parameter, an encoded value and a
-      masked parameter name. Release.
+      masked parameter name. Released as 2.4.1.
