@@ -146,7 +146,10 @@ capabilities:
   - id: tn-service
     kind: library
     summary: >-
-      Shared service-level setup (request logging, property logging) and
+      Shared service-level setup (one INFO request line per request - method, path and query, status, time taken, never body or
+      headers, not for probes; property logging; from 2.4.0 correlated log lines: W3C trace continued and sent on, `userId` from a
+      verified token, `sessionId` and `client` as baggage on every line, `tn.logging.edge` to discard a caller's `userId`, and
+      `service.name`/`service.version` from build info; propagation only, no spans exported) and
       tn-auth-service access-token verification (signature, expiry, issuer,
       `token_use` = `access`) - `AccessTokenVerifier`, which a service creates
       itself from the public key and issuer, and which reads the token's `roles` claim
