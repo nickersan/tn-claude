@@ -25,3 +25,7 @@ becomes the path alone with no compatibility step.
 - [x] 3.1 `path` without the query; `query` an object of the parameters (a parameter given more than once as a list), absent when there is
       none; masked by name as any field is. Verify with tests for no query, one parameter, a repeated parameter, an encoded value and a
       masked parameter name. Released as 2.4.1.
+
+## 4. tn-service - dotted correlation names, done when `mvn verify` is green, JaCoCo checked, released
+- [ ] 4.1 Rename the baggage and MDC fields to `user.id`, `session.id` and `client.name`; an edge also discards a legacy `userId`; a
+      service's own `kv("userId")` is a key of its own on the same line, and no line has a key twice. Released as 2.5.0.

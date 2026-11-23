@@ -147,8 +147,9 @@ capabilities:
     kind: library
     summary: >-
       Shared service-level setup (one INFO request line per request - method, path and query, status, time taken, never body or
-      headers, not for probes; property logging; from 2.4.0 correlated log lines: W3C trace continued and sent on, `userId` from a
-      verified token, `sessionId` and `client` as baggage on every line, `tn.logging.edge` to discard a caller's `userId`, and
+      headers, not for probes; property logging; from 2.4.0 correlated log lines: W3C trace continued and sent on, the user from a
+      verified token, session and client as baggage on every line (named `user.id`, `session.id`, `client.name` from 2.5.0;
+      `userId`, `sessionId`, `client` before), `tn.logging.edge` to discard a caller's user, and
       `service.name`/`service.version` from build info; propagation only, no spans exported) and
       tn-auth-service access-token verification (signature, expiry, issuer,
       `token_use` = `access`) - `AccessTokenVerifier`, which a service creates
@@ -169,8 +170,8 @@ capabilities:
       - by: okayat correlated-logging series (2026-11-22)
         change: openspec/changes/correlated-logging
         summary: >-
-          Every log line carries the action (W3C trace id, continued and sent on), who it is for (`userId` from a verified token,
-          `sessionId`, `client`, as baggage; an edge discards an incoming `userId`) and its source (`service.name`, `service.version`).
+          Every log line carries the action (W3C trace id, continued and sent on), who it is for (`user.id` from a verified token,
+          `session.id`, `client.name`, as baggage; an edge discards an incoming `user.id`) and its source (`service.name`, `service.version`).
           Propagation only, no spans exported.
 
   - id: tn-client-feign

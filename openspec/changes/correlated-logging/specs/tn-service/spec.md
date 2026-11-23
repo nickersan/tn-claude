@@ -18,28 +18,28 @@ the trace on.
 - **THEN** the call carries the same trace id in `traceparent`
 
 ### Requirement: A log line names who it is for
-The system SHALL carry `userId`, `sessionId` and `client` between services in the W3C `baggage` header and SHALL put each that is set on
-every log line written while the request is handled. When a service verifies an access token, the system SHALL set `userId` to the
-token's subject. The `userId` on a log line SHALL NOT be used to identify the acting user.
+The system SHALL carry `user.id`, `session.id` and `client.name` between services in the W3C `baggage` header and SHALL put each that is set on
+every log line written while the request is handled. When a service verifies an access token, the system SHALL set `user.id` to the
+token's subject. The `user.id` on a log line SHALL NOT be used to identify the acting user.
 
 #### Scenario: The user from a verified token
 - **WHEN** a service verifies a valid access token while handling a request
-- **THEN** its later lines for that request, and the lines of the services it calls, have the token's subject as `userId`
+- **THEN** its later lines for that request, and the lines of the services it calls, have the token's subject as `user.id`
 
 #### Scenario: Session and client carried on
-- **WHEN** a service is sent baggage with `sessionId` and `client`
+- **WHEN** a service is sent baggage with `session.id` and `client.name`
 - **THEN** its lines for that request have them, and so do the lines of the services it calls
 
 #### Scenario: A verified token wins over a sent user
-- **WHEN** a service sent `userId` in baggage verifies a token for a different subject
+- **WHEN** a service sent `user.id` in baggage verifies a token for a different subject
 - **THEN** its later lines have the token's subject
 
 ### Requirement: An edge trusts no caller's user
-The system SHALL let a service declare itself an edge (`tn.logging.edge=true`). An edge SHALL discard a `userId` it is sent in baggage.
+The system SHALL let a service declare itself an edge (`tn.logging.edge=true`). An edge SHALL discard a `user.id` it is sent in baggage.
 
 #### Scenario: A client asserts a user
-- **WHEN** an edge is sent baggage with a `userId` and no access token
-- **THEN** none of its lines for that request have a `userId`
+- **WHEN** an edge is sent baggage with a `user.id` and no access token
+- **THEN** none of its lines for that request have a `user.id`
 
 ### Requirement: A log line names the service that wrote it
 The system SHALL put `service.name` and `service.version` on every log line, from the service's application name and build info, with no

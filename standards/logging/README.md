@@ -120,9 +120,10 @@ it is WARN. Log an error once, where it is handled, not at every layer it passes
 
 ## Correlation
 
-Every line carries the action it is part of (`traceId`), who it is for (`userId`, or `sessionId` before sign-in), the client (`client`),
+Every line carries the action it is part of (`traceId`), who it is for (`user.id`, or `session.id` before sign-in), the client (`client.name`),
 and the component that wrote it (`service.name`, `service.version`). `tn-service` puts these on a service's lines with no code in the
-service; the apps put the same on theirs. Never put them in the message.
+service; the apps put the same on theirs. Never put them in the message. The dotted names (from tn-service 2.5.0) keep them apart from a
+service's own fields: a line about another user names that user as `userId`, beside the `user.id` the line is for.
 
 ## What logging is for here
 
