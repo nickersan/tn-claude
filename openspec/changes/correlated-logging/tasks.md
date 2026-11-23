@@ -27,5 +27,5 @@ becomes the path alone with no compatibility step.
       masked parameter name. Released as 2.4.1.
 
 ## 4. tn-service - dotted correlation names, done when `mvn verify` is green, JaCoCo checked, released
-- [ ] 4.1 Rename the baggage and MDC fields to `user.id`, `session.id` and `client.name`; an edge also discards a legacy `userId`; a
+- [x] 4.1 Rename the baggage and MDC fields to `user.id`, `session.id` and `client.name`; an edge also discards a legacy `userId`; a
       service's own `kv("userId")` is a key of its own on the same line, and no line has a key twice. Released as 2.5.0.
