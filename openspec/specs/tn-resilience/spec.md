@@ -1,3 +1,12 @@
+# tn-resilience Specification
+
+## Purpose
+Shared protection for the calls one service makes to another through its `@HttpExchange` clients (Resilience4j): a timeout, circuit
+breaker, bulkhead and rate limiter for each service called, and retries only for calls declared safe to repeat, so a slow or failing
+service is contained rather than passed on to its callers. A service gets it by depending on the library and sets it under
+`tn.resilience`. Requested by okayat (home-feed); the read-only `resilience` endpoint and configurable half-open calls came with 1.2.0
+(okayat's health-endpoint-libraries). The behaviour from 1.1.0 is not spec'd here; its tests and README say it.
+
 ## Requirements
 
 ### Requirement: The state of a service's protection can be read

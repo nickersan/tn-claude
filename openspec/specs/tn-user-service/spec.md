@@ -28,14 +28,9 @@ the same email, and no two users may share the same phone number.
   that same user
 
 ### Requirement: A phone number is a country code and a national number
-The system SHALL hold a phone number as its country calling code and its
-national significant number — the number without the trunk prefix used when
-dialling within the country (the UK's leading 0), but keeping a leading 0 that
-is part of the number (Italy's). Both parts SHALL be set or neither. The pair
-SHALL be unique across users. The system SHALL validate the pair against the
-country's numbering plan and reject a number not already in national
-significant form, so every caller stores one form of a number; callers
-normalise first.
+The system SHALL hold a phone number as its country calling code and its national significant number: without the trunk prefix (the
+UK's leading 0), keeping a leading 0 that is part of the number (Italy's). Both parts SHALL be set or neither, the pair SHALL be unique
+across users, and it SHALL be valid for the country's numbering plan and already in national significant form: callers normalise first.
 
 #### Scenario: A valid number is stored as given
 - **WHEN** a caller creates a user with country code 44 and number 7911123456
@@ -102,15 +97,9 @@ this guarantee SHALL hold across instances, not just within one process).
   user
 
 ### Requirement: A user is created or updated by supplying its full representation
-The system SHALL accept the same shape — email, phone, and name fields,
-without an id — for both creating a new user and replacing an existing one's
-profile. Updating a user's profile SHALL be permitted to change its email
-and/or phone, including adding a second identifier alongside an existing one;
-the system does not treat an identifier as immutable once set. The system
-does not itself verify that a supplied identifier belongs to the caller — the
-caller is trusted to have already verified it (e.g. via
-`tn-temporary-token-service`'s OTP flow) before requesting the create or
-update.
+The system SHALL accept the same shape (email, phone and name fields, without an id) to create a user and to replace one's profile, and
+an update MAY change an email or phone or add one: an identifier is not fixed once set. The system does not check that an identifier
+belongs to the caller; the caller is trusted to have verified it first (with `tn-temporary-token-service`'s passcodes, say).
 
 #### Scenario: Adding a second identifier via update
 - **WHEN** a caller updates an existing user, supplying both the identifier it
@@ -173,14 +162,9 @@ and SHALL NOT log an email address or phone number value unmasked.
   entry does not contain the unmasked email address or phone number value
 
 ### Requirement: A user can have an avatar, kept apart from the user
-The system SHALL let a user have one avatar picture, set, read and removed through
-`PUT`, `GET` and `DELETE /v1/users/{id}/avatar`. The picture SHALL be held in a table
-of its own, so that reading users never reads a picture. The user representation SHALL
-carry `avatarVersion` only: a number that changes with each new picture and is absent
-when the user has none. The version SHALL count per user and never be reused for that
-user, including after the avatar is removed and another set. Updating a user SHALL keep
-their avatar, and deleting a user SHALL delete it. The avatar a user has is replaced or
-deleted in place: no earlier picture is kept.
+The system SHALL let a user have one avatar picture, set, read and removed with `PUT`, `GET` and `DELETE /v1/users/{id}/avatar`, held in
+a table of its own so that reading users never reads a picture. The user representation SHALL carry only `avatarVersion`: a number per
+user that changes with each new picture, is never reused for that user, and is absent when there is none. No earlier picture is kept.
 
 #### Scenario: Setting an avatar
 - **WHEN** a caller sets an avatar for a user who has none
@@ -215,14 +199,10 @@ deleted in place: no earlier picture is kept.
 - **THEN** the system responds not found
 
 ### Requirement: An avatar is a small JPEG or PNG, stored without its metadata
-The system SHALL accept as an avatar only a JPEG or PNG of at most 100 KB, as sent and
-as stored, and at most 2048 pixels on a side. It SHALL judge a file by its contents,
-not by the content type it is sent with. It SHALL read a picture's size from its header
-and refuse one that is too large before decoding it, decode with the picture's embedded
-metadata left unread, and decode at most a configured number of pictures at once. It
-SHALL store a picture written afresh from its pixels alone, so that none of the photo's
-embedded metadata (location, camera details, time taken, colour profile) is kept. It
-SHALL stop reading an upload once it exceeds 100 KB.
+The system SHALL accept as an avatar only a JPEG or PNG, judged by its contents, of at most 100 KB as sent and as stored and 2048 pixels
+on a side. It SHALL refuse a picture too large by its header before decoding it, stop reading an upload past 100 KB, and decode at most a
+configured number at once, its metadata unread. It SHALL store a picture written afresh from its pixels, keeping none of its metadata
+(location, camera, time taken, colour profile).
 
 #### Scenario: A picture within the limits is accepted
 - **WHEN** a caller sets a JPEG or PNG of at most 100 KB and 2048 pixels on a side

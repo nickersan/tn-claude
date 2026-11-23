@@ -101,11 +101,10 @@ unless a service asks it to.
 - **THEN** it starts and behaves as before
 
 ### Requirement: A service says whether it is alive and whether it is ready
-The system SHALL give every service that depends on `tn-service` Actuator's `liveness` and `readiness` health groups, on the port the API is on, with
-details never shown. Liveness SHALL depend only on the process. Readiness SHALL be the readiness state and, where the service has a datasource, that
-datasource, and SHALL NOT depend on any other service or on the state of a circuit breaker. `tn-service` SHALL expose `health` and `resilience` over the
-web by default, merged with what a service sets itself and overridden by its own settings, and SHALL expose no other endpoint. Services set none (platform/health).
-`GET /noop` is unchanged.
+The system SHALL give every service that depends on `tn-service` Actuator's `liveness` and `readiness` health groups, on the API's port,
+details never shown. Liveness SHALL depend only on the process; readiness on the readiness state and the service's own datasource, if any,
+never on another service or a breaker. `tn-service` SHALL expose `health` and `resilience` by default, merged with and overridden by the
+service's own settings, and nothing else (platform/health).
 
 #### Scenario: A service whose datasource is unreachable is not ready
 - **WHEN** a service's datasource cannot be reached

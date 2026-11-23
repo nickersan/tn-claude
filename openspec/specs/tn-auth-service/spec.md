@@ -49,14 +49,9 @@ determine, not the caller's.
   subject and any roles the caller gave — nothing else the caller supplied
 
 ### Requirement: A session can carry roles, in its access tokens only
-The system SHALL accept, when issuing a session, an optional list of roles — what
-the subject is, opaque to this service as the subject id is — and SHALL keep them
-with the session and put them in the `roles` claim of every access token it issues
-for that session, including after every refresh, without asking anyone. The refresh
-token SHALL NOT carry them. A request with no roles, or an empty list, SHALL give
-tokens with no `roles` claim. A role that is blank or has whitespace in it SHALL be
-rejected (400) and no session issued. A session that existed before roles were
-introduced SHALL have none.
+The system SHALL accept, when issuing a session, an optional list of roles (what the subject is, opaque to this service as the subject id
+is) and SHALL put them in the `roles` claim of every access token it issues for that session, including after every refresh, without asking
+anyone. The refresh token SHALL NOT carry them. A blank role, or one with whitespace in it, SHALL be refused (400) and no session issued.
 
 #### Scenario: Roles are in the access token and not the refresh token
 - **WHEN** a caller requests a token pair for a subject id with the role
