@@ -138,8 +138,17 @@ types:
     description: >-
       Runs one project's services on a developer's machine for manual testing and
       debugging: Docker Compose, key generation, image builds and IDE run
-      configurations. Owns no production code and isn't deployed. Example:
-      okayat-local.
+      configurations. Owns no production code and isn't deployed. No component
+      has this type now: okayat-local was replaced by okayat-platform's
+      dev-environment.md.
+    applies:
+      - conventions
+
+  developer-tool:
+    description: >-
+      A tool a developer runs locally about a project, such as a dashboard of its
+      test results. Owns no production code, isn't deployed or released, and has
+      its own tests. Example: okayat-dashboard.
     applies:
       - conventions
 
