@@ -1,12 +1,12 @@
 ---
 name: complete-change
-description: Finish a feature or task properly - every touched repo's suites, a review of the change against its spec and the standards, the publish chain, the specs synced and the OpenSpec change archived, every component released (each on its own, smoke-tested), the change's acceptance scenarios (smoke plus the touched capabilities, every platform) green on the released code, then the specs, Kustomize and acceptance pushed. Use when the work is done, or the user says to finish, complete, wrap up or ship a feature, task or change.
+description: Finish a feature or task properly - every touched repo's suites, a review of the change against its spec and the standards, the publish chain, the specs synced and the OpenSpec change archived, every component released (each on its own, smoke-tested), the change's acceptance scenarios (smoke plus the touched capabilities and those its shared screen elements reach, every platform) green on the released code, then the specs, Kustomize and acceptance pushed. Use when the work is done, or the user says to finish, complete, wrap up or ship a feature, task or change.
 ---
 
 Finish a change in a tn-layer project. Its component repos are released one by one as their slices are done (see
 "Releasing a repo"); the change is not done, and is not archived as done, until every suite that
 could have been affected is green on the final code, and that includes the change's acceptance scenarios: the smoke scenarios
-plus every scenario of the capabilities it touched, on every platform (the acceptance standard, `standards/acceptance/README.md`,
+plus every scenario of the capabilities it touched and of those its shared screen elements and app helpers reach, on every platform (the acceptance standard, `standards/acceptance/README.md`,
 "What finishes a change"). The full acceptance suites run only when the user asks for them for this change; the nightly run covers
 the rest. This skill is the order to do it in; it does not replace judgment. Stop and tell the
 user when something fails and the cause is not clear.
@@ -62,10 +62,22 @@ step 3 is never skipped. A project with no nightly run of its full suites says s
    - Do not archive a change with unfinished tasks without the user's say-so.
 
 6. **Run the change's acceptance scenarios on the final code**: the smoke scenarios and every scenario of the capabilities the change
-   touched, on every platform the project has, without the scenarios that take the environment down (outages run nightly), against the
+   touched, plus those its shared screen elements and app helpers reach (see "Reach beyond the touched capabilities"), on every platform the project has, without the scenarios that take the environment down (outages run nightly), against the
    released versions of every touched repo (images built from the released checkouts, or the released images). Note anything the run needs first (registry logins, a JDK, an emulator). Long runs
    are normal: start early, let them finish, and do not stop or narrow one to finish sooner without the user saying so.
    Say plainly what ran and that the rest of the suites is left to the nightly run. Run the full suites only when the user asks.
+
+   **Reach beyond the touched capabilities.** A change that alters a screen element other capabilities also use (a menu, a header, a
+   form field, a list's layout), or edits a shared app helper of the acceptance suite, breaks scenarios outside its own capabilities;
+   their own scenarios stay green, so only the nightly saw it, after the release (the acceptance standard, "What finishes a change").
+   For such a change:
+   - list the elements the front-end diff changed by the words the suite finds them by (a label, a role name, a test id), and the
+     suite's helpers the change edited;
+   - run the project's reach tool (its finishing document names it) with them: it lists the capabilities whose runs called those
+     helpers or helpers locating those elements;
+   - add those capabilities to this run, and to the front end's pre-release run ("Releasing a repo", step 1). Where the tool cannot
+     narrow it (no reach recorded, or the project has no such tool), run the full suite on every platform instead.
+   Say in the report which elements and helpers were looked up and which capabilities that added.
 
 7. **Triage every failure; never retry until green.** Decide which it is, and say so:
    - *the change* - fix the code;
@@ -91,7 +103,9 @@ for the rest of the change. This is safe only when the release breaks no release
 renaming takes two releases) and every call between repos has a contract: the repo's own unit, integration and contract
 tests are then what it is released on, and the smoke run checks its wiring into the platform.
 
-1. Its own suites are green from a clean build (step 2) and its diff is reviewed (step 3, for that repo's diff).
+1. Its own suites are green from a clean build (step 2) and its diff is reviewed (step 3, for that repo's diff). A user-facing front
+   end whose diff changes a screen element other capabilities use also has, before release, the capabilities the reach tool finds for it green
+   on every platform against images built from it (step 6, "Reach beyond the touched capabilities"); its smoke run is not enough.
 2. Its build declares the version on `origin/main` (CI sets the version itself from the conventional commits since the last
    tag and ignores the declared one) and depends on no `-SNAPSHOT` of another repo: a dependency on a provider changed in
    this change points at the provider's release. Commit messages use conventional types: `feat` and `fix` release, so

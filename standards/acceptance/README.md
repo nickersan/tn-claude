@@ -11,6 +11,13 @@ suite drives.
   capabilities the change touched, on every platform the suite drives, run on the final code. The full suite runs only when the
   user asks for it for that change. (The user's rule since 2026-11-11: a full web and Android run took hours per change and found
   nothing the change's own scenarios did not.)
+- **A change to shared screen chrome reaches beyond its own capabilities.** When a change alters a screen element other capabilities
+  also use (a menu, a header, a form field, a list's layout) or edits a shared app helper of the suite, its scenarios also include
+  every capability whose steps reach that element or helper, on every platform, run before the front end is released. They are found
+  from the runs, not guessed: the suite records which helpers each capability calls, and the project's tool (its finishing document
+  names it) lists those a change's helpers and changed elements reach. Where the tool cannot narrow it (nothing recorded yet), the
+  full suite on every platform is the bar. (The nightly found this gap four times: OK AT 11-12, 11-13, 11-21, 11-23, each a UI change
+  released green on its own capabilities that broke scenarios of others using the same element.)
 - **The full suite runs every night.** A scheduled run of the whole suite on every platform, from the checkouts as they are, catches
   what a change's scenarios could not see, and names the commits that could have caused each new break. Read its report at the
   start of a session. A project without a nightly run says so, and its changes finish on the full suite until it has one.
