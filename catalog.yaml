@@ -221,7 +221,8 @@ capabilities:
     repo: tn-media-service
     status: active
     api: >-
-      POST /v1/media?profile=&owner= (the picture as the body), GET /v1/media/{id}, GET /v1/media/{id}/content,
+      POST /v1/media?profile=&owner= (the picture as the body), POST /v1/media/uploads (a video, then PUT .../parts/{n} and
+      POST .../actions/complete), GET /v1/media/{id}, GET /v1/media/{id}/content (ranges), GET /v1/media/{id}/poster,
       DELETE /v1/media/{id}, POST /v1/media/{id}/actions/remove
     requested_changes:
       - by: okayat report-pictures, review-reported-pictures and moderation (admin-console series, revised 2026-10-22)
@@ -240,6 +241,16 @@ capabilities:
           `post-picture` profile (500 KB, 1600 px, 40 an hour) beside `avatar` (10 an hour, the global default).
         config: >-
           tn.media-service.profiles.<name>.upload-limit, tn.media-service.profiles.<name>.upload-window
+      - by: okayat post-videos (2026-11-26)
+        change: tn-claude openspec/changes/media-videos
+        summary: >-
+          Video: a profile of `kind: video`; uploads in parts (S3 multipart) to pass a 100 MB-per-request edge; made ready in the
+          background with ffmpeg (H.264/AAC MP4, no metadata, upright, a JPEG still frame); UPLOADING/PROCESSING/READY/FAILED with a
+          failure; width, height, duration; content served in byte ranges and streamed; a poster endpoint. Additive: pictures unchanged.
+          okayat sets a `post-video` profile (150 MB, 60 s, 8 MB parts, 1280 px, 10 an hour).
+        api: >-
+          POST /v1/media/uploads?profile=&owner=&size=, PUT /v1/media/{id}/parts/{n}, POST /v1/media/{id}/actions/complete,
+          GET /v1/media/{id}/poster; Range on GET /v1/media/{id}/content
 
   # Services present in the tn layer but not yet catalogued in detail:
   #   tn-data-service(-jdbc/-jpa), tn-directory-service,
