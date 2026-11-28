@@ -24,8 +24,8 @@ okayat's @smoke (web) is green against it (okayat-kustomize picks up the release
 
 ## 6. Image, build and docs
 - [x] 6.1 `apk add ffmpeg` in the Dockerfile; start-up check when a video profile is set
-- [ ] 6.2 CI installs ffmpeg for the integration tests; README: video profiles, endpoints, ffmpeg locally, the GPL note
+- [x] 6.2 CI installs ffmpeg for the integration tests; README: video profiles, endpoints, ffmpeg locally, the GPL note
 - [x] 6.3 catalog.yaml: tn-media-service's api and a requested change from okayat post-videos
 
 ## 7. Specs
-- [ ] 7.1 Archive: `specs/tn-media-service/spec.md`; okayat's post-videos design refers to it rather than restating it
+- [x] 7.1 Archive: `specs/tn-media-service/spec.md`; okayat's post-videos design refers to it rather than restating it

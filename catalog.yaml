@@ -215,7 +215,9 @@ capabilities:
       Requested by okayat (media-service), released 0.1.0: owns media items - bytes in S3-compatible object storage, metadata in
       Postgres. An item is immutable with a never-reused id; replacing a picture is a new item. Images (JPEG, PNG) only to
       start, accepted under a named upload profile (`avatar`: 100 KB, 2048 px a side), judged by content, bounded before
-      decoding and re-encoded from pixels so no photo metadata is kept; status leaves room for video (`processing`).
+      decoding and re-encoded from pixels so no photo metadata is kept. Videos since 0.7.0 (okayat post-videos): uploaded in
+      parts under a `kind: video` profile, re-encoded in the background with ffmpeg (no metadata, upright, a still frame) and
+      served in byte ranges; contract in openspec/specs/tn-media-service.
       Has no authentication of its own (its consumer's BFF is the gate). Staff can remove an item (bytes deleted, record kept). Also takes over the avatar tn-user-service
       holds today (okayat user-avatar-on-media).
     repo: tn-media-service
