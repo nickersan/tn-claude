@@ -11,6 +11,11 @@ suite drives.
   capabilities the change touched, on every platform the suite drives, run on the final code. The full suite runs only when the
   user asks for it for that change. (The user's rule since 2026-11-11: a full web and Android run took hours per change and found
   nothing the change's own scenarios did not.)
+- **A platform the change cannot alter runs only the smoke scenarios.** Where the steps are written once for every platform and the
+  platforms' apps share one back end, a change to no repo a platform's app is built from or renders (its screens' state, its client)
+  runs the touched capabilities on the other platforms and only the smoke scenarios on that one; the project's finishing document lists
+  those repos, and the nightly runs the rest. (The user's rule since 2026-11-28: an Android scenario takes about seven times a web one,
+  and a back-end change shows the same on both.)
 - **A change to shared screen chrome reaches beyond its own capabilities.** When a change alters a screen element other capabilities
   also use (a menu, a header, a form field, a list's layout) or edits a shared app helper of the suite, its scenarios also include
   every capability whose steps reach that element or helper, on every platform, run before the front end is released. They are found

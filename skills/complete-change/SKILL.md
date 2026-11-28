@@ -6,7 +6,7 @@ description: Finish a feature or task properly - every touched repo's suites, a 
 Finish a change in a tn-layer project. Its component repos are released one by one as their slices are done (see
 "Releasing a repo"); the change is not done, and is not archived as done, until every suite that
 could have been affected is green on the final code, and that includes the change's acceptance scenarios: the smoke scenarios
-plus every scenario of the capabilities it touched and of those its shared screen elements and app helpers reach, on every platform (the acceptance standard, `standards/acceptance/README.md`,
+plus every scenario of the capabilities it touched and of those its shared screen elements and app helpers reach, on every platform, a platform whose app the change cannot alter running only the smoke scenarios (the acceptance standard, `standards/acceptance/README.md`,
 "What finishes a change"). The full acceptance suites run only when the user asks for them for this change; the nightly run covers
 the rest. This skill is the order to do it in; it does not replace judgment. Stop and tell the
 user when something fails and the cause is not clear.
@@ -62,7 +62,7 @@ step 3 is never skipped. A project with no nightly run of its full suites says s
    - Do not archive a change with unfinished tasks without the user's say-so.
 
 6. **Run the change's acceptance scenarios on the final code**: the smoke scenarios and every scenario of the capabilities the change
-   touched, plus those its shared screen elements and app helpers reach (see "Reach beyond the touched capabilities"), on every platform the project has, without the scenarios that take the environment down (outages run nightly), against the
+   touched, plus those its shared screen elements and app helpers reach (see "Reach beyond the touched capabilities"), on every platform the project has (one whose app the change cannot alter runs only the smoke scenarios; the project's finishing document says which repos reach each app), without the scenarios that take the environment down (outages run nightly), against the
    released versions of every touched repo (images built from the released checkouts, or the released images). Note anything the run needs first (registry logins, a JDK, an emulator). Long runs
    are normal: start early, let them finish, and do not stop or narrow one to finish sooner without the user saying so.
    Say plainly what ran and that the rest of the suites is left to the nightly run. Run the full suites only when the user asks.
